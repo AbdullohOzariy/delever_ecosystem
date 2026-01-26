@@ -1,0 +1,188 @@
+// Bu fayl ma'lumotlar bazasi strukturasini belgilaydi
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------
+// ENUMLAR
+// ---------------------------------------------------------
+
+enum UserRole {
+  ADMIN
+  OPERATOR
+  COURIER
+  CASHIER
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum OrderStatus {
+  PENDING
+  PROCESSING
+  DELIVERED
+  CANCELLED
+}
+
+enum PayoutStatus {
+  PENDING
+  PAID
+  BLOCKED
+}
+
+enum PayoutFrequency {
+  WEEKLY
+  MONTHLY
+}
+
+enum ShiftType {
+  MORNING
+  EVENING
+  FULL
+  OFF
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  SICK
+}
+
+// ---------------------------------------------------------
+// MODELLAR
+// ---------------------------------------------------------
+
+model User {
+  id        String   @id @default(uuid())
+  username  String   @unique
+  fullName  String
+  password  String
+  role      UserRole
+  status    UserStatus @default(ACTIVE)
+  telegramId String? @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Aloqalar
+  ordersAsOperator Order[]       @relation("OperatorOrders")
+  ordersAsCourier  Order[]       @relation("CourierOrders")
+  payments         Payment[]
+  schedules        WorkSchedule[]
+  dailyKPIs        DailyKPI[]
+
+  // Baholash (YANGI)
+  ratingsReceived  Rating[]      @relation("ReceivedRatings")
+  ratingsGiven     Rating[]      @relation("GivenRatings")
+
+  @@map("users")
+}
+
+model Rating {
+  id          String   @id @default(uuid())
+
+  fromUserId  String
+  fromUser    User     @relation("GivenRatings", fields: [fromUserId], references: [id])
+
+  toUserId    String
+  toUser      User     @relation("ReceivedRatings", fields: [toUserId], references: [id])
+
+  score       Int      // 1-5
+  comment     String?
+  date        DateTime @default(now()) @db.Date // Kunlik unikal bo'lishi uchun
+
+  createdAt   DateTime @default(now())
+
+  @@unique([fromUserId, toUserId, date]) // Bir kunda bir marta baholash
+  @@map("ratings")
+}
+
+model WorkSchedule {
+  id        String    @id @default(uuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id])
+
+  date      DateTime  @db.Date
+  shift     ShiftType
+  status    AttendanceStatus @default(PRESENT)
+
+  createdAt DateTime  @default(now())
+
+  @@unique([userId, date])
+  @@map("work_schedules")
+}
+
+model DailyKPI {
+  id        String    @id @default(uuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id])
+
+  date      DateTime  @db.Date
+
+  scriptScore     Float?
+  errorScore      Float?
+  disciplineScore Float?
+
+  bonusAmount     Decimal  @default(0) @db.Decimal(10, 2)
+  isConfirmed     Boolean  @default(false)
+
+  ordersCount     Int      @default(0)
+  avgSpeedSeconds Int      @default(0)
+  avgCheckAmount  Decimal  @default(0) @db.Decimal(10, 2)
+
+  comment         String?
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, date])
+  @@map("daily_kpi")
+}
+
+model Order {
+  id           String      @id
+  customerName String
+  address      String
+  amount       Decimal     @db.Decimal(10, 2)
+  deliveryPrice Decimal    @db.Decimal(10, 2)
+  deliveryType String?
+  status       OrderStatus @default(PENDING)
+
+  createdAt    DateTime    @default(now())
+  deliveredAt  DateTime?
+  deliveryTimeSeconds Int?
+
+  operatorId   String?
+  operator     User?       @relation("OperatorOrders", fields: [operatorId], references: [id])
+
+  courierId    String?
+  courier      User?       @relation("CourierOrders", fields: [courierId], references: [id])
+
+  @@map("orders")
+}
+
+model Payment {
+  id                String          @id @default(uuid())
+  userId            String
+  user              User            @relation(fields: [userId], references: [id])
+
+  amount            Decimal         @db.Decimal(10, 2)
+  status            PayoutStatus    @default(PENDING)
+  frequency         PayoutFrequency
+  period            String
+
+  feedbackCompleted Boolean         @default(false)
+  processedAt       DateTime?
+
+  createdAt         DateTime        @default(now())
+
+  @@map("payments")
+}

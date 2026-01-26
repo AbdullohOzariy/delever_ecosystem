@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  # Asosiy Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: delever_db
+    environment:
+      POSTGRES_USER: delever_admin
+      POSTGRES_PASSWORD: secure_password_123
+      POSTGRES_DB: delever_ecosystem
+    ports:
+      - "5433:5432" # O'zgartirildi: Tashqi port 5433 bo'ldi
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - delever_network
+    restart: unless-stopped
+
+  # Database Boshqaruv Paneli (Brauzer orqali kirish uchun)
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: delever_pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@delever.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+    networks:
+      - delever_network
+
+volumes:
+  postgres_data:
+
+networks:
+  delever_network:
+    driver: bridge

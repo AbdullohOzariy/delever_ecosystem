@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "daily_kpi" ADD COLUMN     "bonusAmount" DECIMAL(10,2) NOT NULL DEFAULT 0,
+ADD COLUMN     "fineAmount" DECIMAL(10,2) NOT NULL DEFAULT 0;
