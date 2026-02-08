@@ -11,12 +11,12 @@ import AdminKPIReports from './components/AdminKPIReports';
 import RatingView from './components/RatingView';
 import CourierReports from './components/CourierReports';
 import MasterDataView from './components/MasterDataView';
-import AdminChecklist from './components/AdminChecklist'; // YANGI
+import AdminChecklist from './components/AdminChecklist'; 
 import { api } from './api';
 
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [activeTab, setActiveTab] = useState<string>('checklist'); // Default: Checklist
+  const [activeTab, setActiveTab] = useState<string>('checklist'); 
   const [authLoading, setAuthLoading] = useState(true);
   const [users, setUsers] = useState<User[]>([]);
   
@@ -64,7 +64,7 @@ const App: React.FC = () => {
     setCurrentUser(user);
     
     if (user.role === UserRole.ADMIN) {
-      setActiveTab('checklist'); // Admin uchun Checklist
+      setActiveTab('checklist'); 
       loadUsers();
     } else if (user.role === UserRole.CASHIER) {
       setActiveTab('payouts');
@@ -173,7 +173,6 @@ const App: React.FC = () => {
       />
       <main className="flex-1 p-8 lg:p-12 overflow-y-auto max-h-screen">
         <div className="max-w-7xl mx-auto">
-          {/* Admin Checklist (Dashboard o'rniga) */}
           {activeTab === 'checklist' && <AdminChecklist setActiveTab={setActiveTab} />}
 
           {activeTab === 'kpi' && <KPIView user={currentUser} />}
@@ -200,7 +199,7 @@ const App: React.FC = () => {
             />
           )}
           {activeTab === 'payouts' && <CashierPortal />}
-          {activeTab === 'scripts' && <ScriptsPortal role={currentUser.role} />}
+          {activeTab === 'scripts' && <ScriptsPortal user={currentUser} />}
         </div>
       </main>
     </div>
