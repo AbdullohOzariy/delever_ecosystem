@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, OrderStatus, AttendanceStatus } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import fetch from 'node-fetch'; 
@@ -21,7 +21,7 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 // ---------------------------------------------------------
 // TELEGRAM NOTIFICATION
 // ---------------------------------------------------------
-const sendTelegramMessage = async (chatId: string, text: string) => {
+const sendTelegramMessage = async (chatId: string, text: string): Promise<any> => {
   if (!chatId || chatId === 'null') return;
   try {
     const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
@@ -53,10 +53,10 @@ app.post('/api/test/notification', async (req, res) => {
     
     const result = await sendTelegramMessage(user.telegramId, message);
     
-    if (result.ok) {
+    if (result && result.ok) {
       res.json({ message: "Xabar yuborildi" });
     } else {
-      res.status(500).json({ error: "Telegram API xatosi: " + result.description });
+      res.status(500).json({ error: "Telegram API xatosi: " + (result ? result.description : "Noma'lum") });
     }
   } catch (error) {
     res.status(500).json({ error: "Xatolik yuz berdi" });
@@ -201,7 +201,7 @@ app.post('/api/auth/telegram', async (req, res) => {
       return res.json({ token, user: userWithoutPassword });
     }
 
-    // 3. Hech narsa yo'q -> Login so'rish
+    // 3. Hech narsa yo'q -> Login so'rash
     return res.status(404).json({ error: "User topilmadi. Iltimos, login qiling." });
 
   } catch (error) {
@@ -295,6 +295,11 @@ app.post('/api/orders/import', async (req, res) => {
     if (!Array.isArray(orders)) return res.status(400).json({ error: "Noto'g'ri format" });
 
     console.log(`📥 Import boshlandi: ${orders.length} ta buyurtma`);
+    
+    // DEBUG: Birinchi buyurtmani tekshirish
+    if (orders.length > 0) {
+      console.log("Birinchi buyurtma namunasi:", orders[0]);
+    }
 
     let allUsers = await prisma.user.findMany({
       select: { id: true, fullName: true, role: true }
@@ -365,8 +370,9 @@ app.post('/api/orders/import', async (req, res) => {
         address: o.address || '',
         amount: isNaN(amount) ? 0 : amount,
         deliveryPrice: isNaN(deliveryPrice) ? 0 : deliveryPrice,
-        deliveryType: o.deliveryType || '', // YANGI: CSV dan o'qish
-        status: 'DELIVERED',
+        deliveryType: o.deliveryType || '', 
+        branch: o.branch || null, // YANGI: Filial nomi
+        status: OrderStatus.DELIVERED, 
         createdAt: parseDate(o.createdAt),
         deliveredAt: parseDate(o.createdAt),
         deliveryTimeSeconds: isNaN(deliveryTimeSeconds) ? 0 : deliveryTimeSeconds,
@@ -411,7 +417,7 @@ app.get('/api/orders', async (req, res) => {
   const orders = await prisma.order.findMany({
     include: { operator: true, courier: true },
     orderBy: { createdAt: 'desc' },
-    take: 100 
+    // take: 100 // <--- LIMIT OLIB TASHLANDI
   });
   res.json(orders);
 });
@@ -447,7 +453,7 @@ app.post('/api/schedule/generate', async (req, res) => {
         counter++;
         if (counter >= offCount) { isWorkingPhase = true; counter = 0; }
       }
-      schedules.push({ userId, date: new Date(currentDate), shift: shiftType as any, status: 'PRESENT' });
+      schedules.push({ userId, date: new Date(currentDate), shift: shiftType as any, status: AttendanceStatus.PRESENT }); // ENUM
       currentDate.setDate(currentDate.getDate() + 1);
     }
     await prisma.workSchedule.deleteMany({ where: { userId, date: { gte: start, lte: end } } });
@@ -467,6 +473,30 @@ app.post('/api/kpi/daily', async (req, res) => {
     const { userId, date, scriptScore, errorScore, disciplineScore, comment, bonusAmount } = req.body;
     const targetDate = new Date(date);
     
+    // YANGI: Agar bu haftalik bonus bo'lsa, o'sha haftadagi boshqa bonuslarni tozalash
+    if (comment === 'Haftalik bonus' && bonusAmount !== undefined) {
+      // Haftaning boshini va oxirini topish
+      const day = targetDate.getDay();
+      const start = new Date(targetDate);
+      start.setDate(targetDate.getDate() - day); // Yakshanba
+      start.setHours(0, 0, 0, 0);
+      
+      const end = new Date(start);
+      end.setDate(start.getDate() + 6); // Shanba
+      end.setHours(23, 59, 59, 999);
+
+      // Barcha eski bonuslarni 0 qilish (shu hafta uchun)
+      await prisma.dailyKPI.updateMany({
+        where: { 
+          userId, 
+          date: { gte: start, lte: end },
+          // O'zimiz yozayotgan kundan tashqari
+          NOT: { date: targetDate }
+        },
+        data: { bonusAmount: 0 }
+      });
+    }
+
     const updateData: any = { comment };
     if (scriptScore !== undefined) updateData.scriptScore = parseFloat(scriptScore);
     if (errorScore !== undefined) updateData.errorScore = parseFloat(errorScore);
@@ -648,6 +678,7 @@ app.get('/api/kpi/report/:userId', async (req, res) => {
           speedBonusCount++;
         }
 
+        // 2. YANGI: 8000 va 10000 lik buyurtmalar uchun +1000 bonus
         if (price === 8000 || price === 10000) {
           totalEarnings += 1000; 
           specialBonusCount++;

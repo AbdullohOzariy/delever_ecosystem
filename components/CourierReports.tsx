@@ -31,15 +31,42 @@ const CourierReports: React.FC<CourierReportsProps> = ({ user }) => {
     loadReport();
   }, [user.id, month, week, periodType]);
 
+  const getDateFromWeek = (weekStr: string) => {
+    const [y, w] = weekStr.split('-W');
+    const year = parseInt(y);
+    const week = parseInt(w);
+    
+    const simple = new Date(year, 0, 1 + (week - 1) * 7);
+    const dow = simple.getDay();
+    const ISOweekStart = simple;
+    if (dow <= 4)
+        ISOweekStart.setDate(simple.getDate() - simple.getDay() + 1);
+    else
+        ISOweekStart.setDate(simple.getDate() + 8 - simple.getDay());
+    
+    return ISOweekStart; 
+  };
+
+  // YANGI: Hafta oralig'ini hisoblash (Yakshanba - Shanba)
+  const getWeekRangeDisplay = (weekStr: string) => {
+    const monday = getDateFromWeek(weekStr);
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() - 1); // Yakshanba (Hafta boshi)
+    
+    const saturday = new Date(sunday);
+    saturday.setDate(sunday.getDate() + 6); // Shanba (Hafta oxiri)
+
+    return `${sunday.toLocaleDateString('uz-UZ')} - ${saturday.toLocaleDateString('uz-UZ')}`;
+  };
+
   const loadReport = async () => {
     setLoading(true);
     try {
       let periodQuery = `month=${month}`;
       
       if (periodType === 'weekly') {
-        const [y, w] = week.split('-W');
-        const simpleDate = new Date(parseInt(y), 0, 1 + (parseInt(w) - 1) * 7);
-        const dateStr = simpleDate.toISOString().slice(0, 10);
+        const monday = getDateFromWeek(week);
+        const dateStr = monday.toISOString().slice(0, 10);
         periodQuery = `period=weekly&week=${dateStr}`;
       }
 
@@ -91,7 +118,10 @@ const CourierReports: React.FC<CourierReportsProps> = ({ user }) => {
             {periodType === 'monthly' ? (
               <input type="month" value={month} onChange={(e) => setMonth(e.target.value)} className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm font-bold outline-none" />
             ) : (
-              <input type="week" value={week} onChange={(e) => setWeek(e.target.value)} className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm font-bold outline-none" />
+              <div className="flex flex-col">
+                <input type="week" value={week} onChange={(e) => setWeek(e.target.value)} className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm font-bold outline-none" />
+                <span className="text-[10px] text-slate-400 font-bold mt-1 text-center">{getWeekRangeDisplay(week)}</span>
+              </div>
             )}
           </div>
         </div>
@@ -146,7 +176,7 @@ const CourierReports: React.FC<CourierReportsProps> = ({ user }) => {
             </div>
             <div className="flex justify-between items-center border-b border-white/20 pb-2">
               <span className="text-xs font-medium opacity-80">Maxsus (8k/10k):</span>
-              <span className="font-bold">+{(facts.specialBonusCount * 10000).toLocaleString()}</span>
+              <span className="font-bold">+{(facts.specialBonusCount * 1000).toLocaleString()}</span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-xs font-medium opacity-80">Admin bonusi:</span>

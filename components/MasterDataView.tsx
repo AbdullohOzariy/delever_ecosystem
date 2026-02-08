@@ -8,6 +8,7 @@ interface Order {
   amount: number;
   deliveryPrice: number;
   deliveryType: string;
+  branch?: string; // YANGI
   createdAt: string;
   deliveryTimeSeconds: number;
   status: string;
@@ -15,7 +16,7 @@ interface Order {
   courier?: { fullName: string };
 }
 
-const EXPECTED_HEADER = "№,Ид.заказа,Оператор,Тип доставки,Курьер,Источник,Тип платежа,Цена заказа,Цена доставки,Новый заказ,Итоговое время";
+const EXPECTED_HEADER = "№,Ид.заказа,Оператор,Название филиала,Тип доставки,Курьер,Источник,Тип платежа,Цена заказа,Цена доставки,Новый заказ,Итоговое время";
 
 const MasterDataView: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -28,6 +29,7 @@ const MasterDataView: React.FC = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [dateRange, setDateRange] = useState({ start: '', end: '' });
   const [filterType, setFilterType] = useState('all'); 
+  const [filterBranch, setFilterBranch] = useState('all'); // YANGI
   const [priceRange, setPriceRange] = useState({ min: '', max: '' });
 
   useEffect(() => {
@@ -37,6 +39,7 @@ const MasterDataView: React.FC = () => {
   const loadOrders = async () => {
     try {
       const data = await api.getOrders();
+      console.log("Yuklangan buyurtmalar:", data); // DEBUG
       setOrders(data);
     } catch (error) {
       console.error("Buyurtmalarni yuklashda xatolik:", error);
@@ -72,33 +75,58 @@ const MasterDataView: React.FC = () => {
       const cleanHeader = header.replace(/^\uFEFF/, '');
       
       if (cleanHeader !== EXPECTED_HEADER) {
-        setToast({ message: "CSV shabloni noto'g'ri!", type: 'error' });
+        const expectedCols = EXPECTED_HEADER.split(',');
+        const actualCols = cleanHeader.split(',');
+        
+        if (actualCols.length !== expectedCols.length) {
+           setToast({ message: `CSV sarlavhasi xato! Kutilgan ustunlar soni: ${expectedCols.length}, Kelgan: ${actualCols.length}`, type: 'error' });
+        } else {
+           setToast({ message: "CSV sarlavhasi shablonga mos kelmadi. Iltimos, shablonni tekshiring.", type: 'error' });
+        }
         return;
       }
 
       const newOrders: any[] = [];
-      
+      let errorCount = 0;
+      let firstError = '';
+
       for (let i = 1; i < lines.length; i++) {
         const line = lines[i].trim();
         if (!line) continue;
         
         const cols = line.split(',');
         
-        if (cols.length < 11) {
-          console.warn(`Qator ${i+1} o'tkazib yuborildi: Ustunlar yetishmayapti`);
+        if (cols.length < 12) {
+          errorCount++;
+          if (!firstError) firstError = `${i+1}-qatorda ustunlar yetishmayapti`;
           continue;
         }
+
+        const amount = parseFloat(cols[8]); 
+        if (isNaN(amount)) {
+           errorCount++;
+           if (!firstError) firstError = `${i+1}-qatorda 'Narx' noto'g'ri formatda`;
+           continue;
+        }
+
+        // DEBUG: Branch ni tekshirish
+        // console.log(`Qator ${i}: Branch = ${cols[3]}`);
 
         newOrders.push({
           id: cols[1]?.replace(/"/g, '').trim(), 
           operatorName: cols[2]?.replace(/"/g, '').trim(), 
-          deliveryType: cols[3]?.replace(/"/g, '').trim(),
-          courierName: cols[4]?.replace(/"/g, '').trim(),
-          amount: parseFloat(cols[7]) || 0,
-          deliveryPrice: parseFloat(cols[8]) || 0,
-          createdAt: cols[9]?.replace(/"/g, '').trim(),
-          deliveryTimeSeconds: parseTimeToSeconds(cols[10]?.replace(/"/g, '').trim())
+          branch: cols[3]?.replace(/"/g, '').trim(), // YANGI: Filial
+          deliveryType: cols[4]?.replace(/"/g, '').trim(),
+          courierName: cols[5]?.replace(/"/g, '').trim(),
+          amount: amount,
+          deliveryPrice: parseFloat(cols[9]) || 0,
+          createdAt: cols[10]?.replace(/"/g, '').trim(),
+          deliveryTimeSeconds: parseTimeToSeconds(cols[11]?.replace(/"/g, '').trim())
         });
+      }
+
+      if (errorCount > 0) {
+        setToast({ message: `Diqqat! ${errorCount} ta qator o'tkazib yuborildi. Xato: ${firstError}`, type: 'info' });
       }
 
       if (newOrders.length === 0) {
@@ -109,13 +137,12 @@ const MasterDataView: React.FC = () => {
       const response = await api.importOrders(newOrders);
       
       if (response.error) {
-        // Yangi xodimlar topilganda (409 Conflict)
         setToast({ message: `Yangi xodimlar topildi: ${response.newOperators?.length || 0} operator, ${response.newCouriers?.length || 0} kuryer. Iltimos, ularni Xodimlar bo'limida yarating.`, type: 'info' });
       } else {
         setToast({ message: `Import yakunlandi! Qo'shildi: ${response.added}`, type: 'success' });
         loadOrders();
       }
-
+      
     } catch (error) {
       setToast({ message: "Import qilishda xatolik yuz berdi.", type: 'error' });
     } finally {
@@ -136,6 +163,12 @@ const MasterDataView: React.FC = () => {
     }
   };
 
+  // Unique Branches
+  const uniqueBranches = useMemo(() => {
+    const branches = new Set(orders.map(o => o.branch).filter(Boolean));
+    return ['all', ...Array.from(branches)];
+  }, [orders]);
+
   const filteredOrders = useMemo(() => {
     return orders.filter(o => {
       const matchesSearch = !search || 
@@ -148,19 +181,22 @@ const MasterDataView: React.FC = () => {
       const matchesEnd = !dateRange.end || orderDate <= new Date(new Date(dateRange.end).setHours(23, 59, 59));
 
       const matchesType = filterType === 'all' || o.deliveryType === filterType;
+      const matchesBranch = filterBranch === 'all' || o.branch === filterBranch; // YANGI
 
       const matchesMin = !priceRange.min || o.amount >= Number(priceRange.min);
       const matchesMax = !priceRange.max || o.amount <= Number(priceRange.max);
 
-      return matchesSearch && matchesStart && matchesEnd && matchesType && matchesMin && matchesMax;
+      return matchesSearch && matchesStart && matchesEnd && matchesType && matchesBranch && matchesMin && matchesMax;
     });
-  }, [orders, search, dateRange, filterType, priceRange]);
+  }, [orders, search, dateRange, filterType, filterBranch, priceRange]);
 
   const typeOptions = [
     { value: 'all', label: 'Barchasi' },
     { value: 'Доставка', label: 'Доставка', icon: '🛵' },
     { value: 'Самовывоз', label: 'Самовывоз', icon: '🏃' }
   ];
+
+  const branchOptions = uniqueBranches.map(b => ({ value: b as string, label: b === 'all' ? 'Barcha Filiallar' : (b as string) }));
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 pb-20 px-4 md:px-0 relative">
@@ -251,15 +287,25 @@ const MasterDataView: React.FC = () => {
               </div>
             </div>
 
-            {/* 2-Qator: Turi va Summa */}
+            {/* 2-Qator: Turi, Filial va Summa */}
             <div className="space-y-6">
-              <div className="space-y-3">
-                <Dropdown 
-                  label="Yetkazish Turi"
-                  options={typeOptions}
-                  value={filterType}
-                  onChange={setFilterType}
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-3">
+                  <Dropdown 
+                    label="Yetkazish Turi"
+                    options={typeOptions}
+                    value={filterType}
+                    onChange={setFilterType}
+                  />
+                </div>
+                <div className="space-y-3">
+                  <Dropdown 
+                    label="Filial"
+                    options={branchOptions}
+                    value={filterBranch}
+                    onChange={setFilterBranch}
+                  />
+                </div>
               </div>
 
               <div className="space-y-3">
@@ -293,6 +339,7 @@ const MasterDataView: React.FC = () => {
             <tr>
               <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest">ID</th>
               <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest">Operator / Kuryer</th>
+              <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-center">Filial</th>
               <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-center">Turi</th>
               <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-center">Vaqt</th>
               <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-right">Summa / Dostavka</th>
@@ -311,6 +358,11 @@ const MasterDataView: React.FC = () => {
                       {ord.courier?.fullName || '---'}
                     </span>
                   </div>
+                </td>
+                <td className="px-6 py-5 text-center">
+                  <span className="text-xs font-bold text-slate-600 bg-slate-100 px-2 py-1 rounded-lg">
+                    {ord.branch || '-'}
+                  </span>
                 </td>
                 <td className="px-6 py-5 text-center">
                   <span className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest ${
@@ -337,7 +389,7 @@ const MasterDataView: React.FC = () => {
             ))}
             {filteredOrders.length === 0 && (
               <tr>
-                <td colSpan={6} className="py-20 text-center text-slate-400 font-bold">
+                <td colSpan={7} className="py-20 text-center text-slate-400 font-bold">
                   Ma'lumot topilmadi
                 </td>
               </tr>

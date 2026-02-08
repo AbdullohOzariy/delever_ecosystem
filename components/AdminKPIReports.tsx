@@ -65,6 +65,18 @@ const AdminKPIReports: React.FC<AdminKPIReportsProps> = ({ users }) => {
     return ISOweekStart; 
   };
 
+  // YANGI: Hafta oralig'ini hisoblash (Yakshanba - Shanba)
+  const getWeekRangeDisplay = (weekStr: string) => {
+    const monday = getDateFromWeek(weekStr);
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() - 1); // Yakshanba (Hafta boshi)
+    
+    const saturday = new Date(sunday);
+    saturday.setDate(sunday.getDate() + 6); // Shanba (Hafta oxiri)
+
+    return `${sunday.toLocaleDateString('uz-UZ')} - ${saturday.toLocaleDateString('uz-UZ')}`;
+  };
+
   const loadAllReports = async () => {
     setLoading(true);
     try {
@@ -198,7 +210,7 @@ const AdminKPIReports: React.FC<AdminKPIReportsProps> = ({ users }) => {
     
     doc.setFontSize(11);
     doc.setTextColor(100);
-    const periodText = activeRole === UserRole.OPERATOR ? `Oy: ${month}` : `Hafta: ${week}`;
+    const periodText = activeRole === UserRole.OPERATOR ? `Oy: ${month}` : `Hafta: ${week} (${getWeekRangeDisplay(week)})`;
     doc.text(periodText, 14, 30);
 
     const tableColumn = activeRole === UserRole.OPERATOR 
@@ -218,7 +230,6 @@ const AdminKPIReports: React.FC<AdminKPIReportsProps> = ({ users }) => {
           Number(rep.finalScore).toFixed(2)
         ];
       } else {
-        // Tafsilotlarni matnga o'girish
         const details = Object.entries(rep.facts?.priceStats || {})
           .map(([price, count]) => `${Number(price).toLocaleString()}: ${count} ta`)
           .join('\n');
@@ -226,7 +237,7 @@ const AdminKPIReports: React.FC<AdminKPIReportsProps> = ({ users }) => {
         return [
           rep.user.fullName,
           rep.facts?.totalOrders || 0,
-          details || '-', // Tafsilotlar
+          details || '-', 
           `${rep.facts?.avgSpeedMinutes || 0} min`,
           rep.facts?.speedBonusCount || 0,
           rep.facts?.specialBonusCount || 0,
@@ -242,7 +253,7 @@ const AdminKPIReports: React.FC<AdminKPIReportsProps> = ({ users }) => {
       startY: 40,
       theme: 'grid',
       styles: { fontSize: 8, cellPadding: 3 },
-      headStyles: { fillColor: [22, 163, 74] }
+      headStyles: { fillColor: [22, 163, 74] } 
     });
 
     doc.save(`kpi_report_${activeRole}_${new Date().toISOString().slice(0, 10)}.pdf`);
@@ -262,7 +273,7 @@ const AdminKPIReports: React.FC<AdminKPIReportsProps> = ({ users }) => {
       const date = new Date(parseInt(y), parseInt(m) - 1);
       return date.toLocaleDateString('uz-UZ', { month: 'long', year: 'numeric' });
     } else {
-      return `${week}-hafta`;
+      return `${week}-hafta (${getWeekRangeDisplay(week)})`;
     }
   };
 
@@ -291,14 +302,14 @@ const AdminKPIReports: React.FC<AdminKPIReportsProps> = ({ users }) => {
           <div className="relative" ref={dateRef}>
             <button 
               onClick={() => setIsDateOpen(!isDateOpen)}
-              className="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-2xl px-5 py-3 text-sm font-bold outline-none hover:bg-slate-100 transition-all min-w-[180px] justify-between"
+              className="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-2xl px-5 py-3 text-sm font-bold outline-none hover:bg-slate-100 transition-all min-w-[220px] justify-between"
             >
-              <span className="capitalize">{formatDisplayDate()}</span>
+              <span className="capitalize truncate max-w-[180px]">{formatDisplayDate()}</span>
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className={`text-slate-400 transition-transform ${isDateOpen ? 'rotate-180' : ''}`}><path d="m6 9 6 6 6-6"/></svg>
             </button>
 
             {isDateOpen && (
-              <div className="absolute top-full right-0 mt-2 bg-white border border-slate-100 rounded-2xl shadow-xl p-4 z-50 animate-in fade-in zoom-in-95 duration-200">
+              <div className="absolute top-full right-0 mt-2 bg-white border border-slate-100 rounded-2xl shadow-xl p-4 z-50 animate-in fade-in zoom-in-95 duration-200 w-[300px]">
                 {activeRole === UserRole.OPERATOR ? (
                   <input 
                     type="month" 
@@ -307,12 +318,17 @@ const AdminKPIReports: React.FC<AdminKPIReportsProps> = ({ users }) => {
                     className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold outline-none w-full"
                   />
                 ) : (
-                  <input 
-                    type="week" 
-                    value={week}
-                    onChange={(e) => { setWeek(e.target.value); setIsDateOpen(false); }}
-                    className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold outline-none w-full"
-                  />
+                  <div className="space-y-2">
+                    <input 
+                      type="week" 
+                      value={week}
+                      onChange={(e) => { setWeek(e.target.value); setIsDateOpen(false); }}
+                      className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold outline-none w-full"
+                    />
+                    <p className="text-xs text-slate-500 text-center font-medium">
+                      {getWeekRangeDisplay(week)}
+                    </p>
+                  </div>
                 )}
               </div>
             )}

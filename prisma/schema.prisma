@@ -80,9 +80,12 @@ model User {
   schedules        WorkSchedule[]
   dailyKPIs        DailyKPI[]
 
-  // Baholash (YANGI)
+  // Baholash
   ratingsReceived  Rating[]      @relation("ReceivedRatings")
   ratingsGiven     Rating[]      @relation("GivenRatings")
+
+  // Imtihonlar (YANGI)
+  examResults      ExamResult[]
 
   @@map("users")
 }
@@ -98,12 +101,42 @@ model Rating {
 
   score       Int      // 1-5
   comment     String?
-  date        DateTime @default(now()) @db.Date // Kunlik unikal bo'lishi uchun
+  date        DateTime @default(now()) @db.Date
 
   createdAt   DateTime @default(now())
 
-  @@unique([fromUserId, toUserId, date]) // Bir kunda bir marta baholash
+  @@unique([fromUserId, toUserId, date])
   @@map("ratings")
+}
+
+// IMTIHON TIZIMI (YANGI)
+model Exam {
+  id          String   @id @default(uuid())
+  title       String   // Masalan: "Mart oyi imtihoni"
+  questions   Json     // Savollar va javoblar (JSON formatda)
+  createdAt   DateTime @default(now())
+
+  results     ExamResult[]
+
+  @@map("exams")
+}
+
+model ExamResult {
+  id          String   @id @default(uuid())
+
+  examId      String
+  exam        Exam     @relation(fields: [examId], references: [id])
+
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+
+  score       Int      // Masalan: 8 (10 dan)
+  total       Int      // Masalan: 10
+  details     Json?    // Qaysi savolga qanday javob berdi
+
+  date        DateTime @default(now())
+
+  @@map("exam_results")
 }
 
 model WorkSchedule {
@@ -154,6 +187,7 @@ model Order {
   amount       Decimal     @db.Decimal(10, 2)
   deliveryPrice Decimal    @db.Decimal(10, 2)
   deliveryType String?
+  branch       String?
   status       OrderStatus @default(PENDING)
 
   createdAt    DateTime    @default(now())

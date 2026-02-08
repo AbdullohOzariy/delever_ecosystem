@@ -150,12 +150,17 @@ export const api = {
     return res.json();
   },
 
-  saveRating: async (data: { fromUserId: string, toUserId: string, score: number, comment: string }) => {
+  saveRating: async (data: { fromUserId: string, toUserId: string, score: number, comment: string, week: string }) => {
     const res = await fetch(`${API_URL}/ratings`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
+    return res.json();
+  },
+
+  getRatingsForCourierAndWeek: async (fromUserId: string, week: string) => {
+    const res = await fetch(`${API_URL}/ratings/courier/${fromUserId}/${week}`);
     return res.json();
   },
 
