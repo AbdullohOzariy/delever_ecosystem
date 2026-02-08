@@ -11,9 +11,7 @@ const RatingView: React.FC = () => {
 
   const loadRatings = async () => {
     try {
-      // Hozircha api.ts da getRatings yo'q, uni qo'shish kerak yoki fetch
-      const res = await fetch('http://localhost:3001/api/ratings/all');
-      const data = await res.json();
+      const data = await api.getAllRatings();
       setRatings(data);
     } catch (error) {
       console.error("Reytinglarni yuklashda xatolik");
@@ -25,54 +23,70 @@ const RatingView: React.FC = () => {
   if (loading) return <div className="p-10 text-center text-slate-400 font-bold">Yuklanmoqda...</div>;
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
+    <div className="space-y-8 animate-in fade-in duration-500 pb-20">
       <header className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm">
-        <h2 className="text-3xl font-black text-slate-900 tracking-tight">Baholash Tarixi</h2>
+        <h2 className="text-3xl font-black text-slate-900 tracking-tight">Reytinglar</h2>
         <p className="text-slate-500 font-medium mt-1 uppercase text-[10px] tracking-widest">
-          Kuryerlar va Operatorlar o'rtasidagi fikr-mulohazalar
+          Barcha baholashlar tarixi
         </p>
       </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {ratings.map((rating) => (
-          <div key={rating.id} className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-md transition-all">
-            <div className="flex justify-between items-start mb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center font-black text-blue-600">
-                  {rating.fromUser.fullName.charAt(0)}
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-slate-900">{rating.fromUser.fullName}</p>
-                  <p className="text-[9px] text-slate-400 uppercase tracking-widest">{rating.fromUser.role}</p>
-                </div>
-              </div>
-              <div className="text-right">
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Kimga:</p>
-                <p className="text-xs font-bold text-slate-900">{rating.toUser.fullName}</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-1 mb-3">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <span key={star} className={`text-lg ${rating.score >= star ? 'text-amber-400' : 'text-slate-200'}`}>★</span>
-              ))}
-            </div>
-
-            <p className="text-sm text-slate-600 italic bg-slate-50 p-3 rounded-xl border border-slate-100">
-              "{rating.comment || 'Izoh yo\'q'}"
-            </p>
-            
-            <p className="text-[10px] text-slate-400 font-bold text-right mt-4">
-              {new Date(rating.createdAt).toLocaleDateString()}
-            </p>
-          </div>
-        ))}
-        
-        {ratings.length === 0 && (
-          <div className="col-span-full py-20 text-center text-slate-400 font-bold">
-            Hozircha baholar yo'q.
-          </div>
-        )}
+      <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
+        <table className="w-full text-left">
+          <thead className="bg-slate-50 text-slate-400 border-b border-slate-100">
+            <tr>
+              <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest">Kimdan</th>
+              <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest">Kimga</th>
+              <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-center">Baho</th>
+              <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest">Izoh</th>
+              <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-right">Sana</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-50">
+            {ratings.map((rating) => (
+              <tr key={rating.id} className="hover:bg-slate-50 transition-colors">
+                <td className="px-8 py-5">
+                  <div className="flex flex-col">
+                    <span className="font-bold text-slate-900 text-sm">{rating.fromUser?.fullName || 'Noma\'lum'}</span>
+                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                      {rating.fromUser?.role || '-'}
+                    </span>
+                  </div>
+                </td>
+                <td className="px-6 py-5">
+                  <div className="flex flex-col">
+                    <span className="font-bold text-slate-900 text-sm">{rating.toUser?.fullName || 'Noma\'lum'}</span>
+                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                      {rating.toUser?.role || '-'}
+                    </span>
+                  </div>
+                </td>
+                <td className="px-6 py-5 text-center">
+                  <span className={`px-3 py-1 rounded-lg font-black text-xs ${
+                    rating.score >= 4 ? 'bg-emerald-100 text-emerald-700' :
+                    rating.score === 3 ? 'bg-amber-100 text-amber-700' :
+                    'bg-rose-100 text-rose-700'
+                  }`}>
+                    {rating.score} ★
+                  </span>
+                </td>
+                <td className="px-6 py-5 text-sm font-medium text-slate-600 max-w-xs truncate">
+                  {rating.comment || '-'}
+                </td>
+                <td className="px-8 py-5 text-right text-xs font-bold text-slate-400">
+                  {new Date(rating.date).toLocaleDateString()}
+                </td>
+              </tr>
+            ))}
+            {ratings.length === 0 && (
+              <tr>
+                <td colSpan={5} className="py-20 text-center text-slate-400 font-bold">
+                  Hali hech kim baholanmagan.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
       </div>
     </div>
   );
