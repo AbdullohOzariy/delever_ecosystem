@@ -27,9 +27,16 @@ const ScriptsPortal: React.FC<ScriptsPortalProps> = ({ user }) => {
     setLoading(true);
     try {
       const data = await api.getScripts();
-      setScripts(data);
+      // XAVFSIZLIK: Agar data massiv bo'lmasa, bo'sh massiv ishlatamiz
+      if (Array.isArray(data)) {
+        setScripts(data);
+      } else {
+        console.error("Skriptlar noto'g'ri formatda keldi:", data);
+        setScripts([]);
+      }
     } catch (error) {
       console.error("Skriptlarni yuklashda xatolik");
+      setScripts([]);
     } finally {
       setLoading(false);
     }
