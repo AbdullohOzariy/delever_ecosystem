@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { UserRole, User } from '../types';
-import { ICONS } from '../constants.tsx'; // YANGI
+import { ICONS } from '../constants.tsx';
 
 interface SidebarProps {
   user: User;
@@ -11,6 +11,12 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ user, activeTab, setActiveTab, onLogout }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   const menuItems = [
     { id: 'checklist', label: 'Vazifalar', icon: ICONS.Dashboard, roles: [UserRole.ADMIN] },
@@ -33,11 +39,22 @@ const Sidebar: React.FC<SidebarProps> = ({ user, activeTab, setActiveTab, onLogo
     setIsOpen(false);
   };
 
+  const formatDate = (date: Date) => {
+    return date.toLocaleDateString('uz-UZ', { day: 'numeric', month: 'long', year: 'numeric' });
+  };
+
+  const formatTime = (date: Date) => {
+    return date.toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' });
+  };
+
   return (
     <>
       {/* Mobile Header */}
       <div className="lg:hidden bg-slate-900 text-white p-4 flex items-center justify-between sticky top-0 z-50 shadow-xl">
-        <h1 className="text-xl font-black tracking-tighter text-blue-500">DELEVER</h1>
+        <div>
+          <h1 className="text-xl font-black tracking-tighter text-blue-500">DELEVER</h1>
+          <p className="text-[10px] text-slate-400 font-medium">{formatDate(currentTime)}</p>
+        </div>
         <button onClick={() => setIsOpen(!isOpen)} className="p-2 bg-slate-800 rounded-xl">
           {isOpen ? (
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
@@ -53,7 +70,10 @@ const Sidebar: React.FC<SidebarProps> = ({ user, activeTab, setActiveTab, onLogo
       <div className={`fixed inset-y-0 left-0 w-72 bg-slate-900 z-50 transform transition-transform duration-300 lg:translate-x-0 lg:static flex flex-col text-slate-300 shrink-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="p-8 border-b border-slate-800/50 hidden lg:block">
           <h1 className="text-3xl font-black text-blue-500 tracking-tighter">DELEVER</h1>
-          <p className="text-[10px] text-slate-500 uppercase font-black tracking-[0.3em] mt-2">Ecosystem</p>
+          <div className="mt-4 bg-slate-800/50 p-3 rounded-xl border border-slate-700/50">
+            <p className="text-xs text-slate-400 font-medium uppercase tracking-widest mb-1">{formatDate(currentTime)}</p>
+            <p className="text-2xl font-black text-white tracking-tight">{formatTime(currentTime)}</p>
+          </div>
         </div>
 
         <nav className="flex-1 p-6 space-y-2 overflow-y-auto">
