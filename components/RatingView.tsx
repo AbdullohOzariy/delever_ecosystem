@@ -12,6 +12,7 @@ const RatingView: React.FC = () => {
   const loadRatings = async () => {
     try {
       const data = await api.getAllRatings();
+      console.log("Reytinglar:", data); // DEBUG
       setRatings(data);
     } catch (error) {
       console.error("Reytinglarni yuklashda xatolik");
@@ -47,17 +48,21 @@ const RatingView: React.FC = () => {
               <tr key={rating.id} className="hover:bg-slate-50 transition-colors">
                 <td className="px-8 py-5">
                   <div className="flex flex-col">
-                    <span className="font-bold text-slate-900 text-sm">{rating.fromUser?.fullName || 'Noma\'lum'}</span>
+                    <span className="font-bold text-slate-900 text-sm">
+                      {rating.fromUser ? rating.fromUser.fullName : 'Noma\'lum'}
+                    </span>
                     <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                      {rating.fromUser?.role || '-'}
+                      {rating.fromUser ? rating.fromUser.role : '-'}
                     </span>
                   </div>
                 </td>
                 <td className="px-6 py-5">
                   <div className="flex flex-col">
-                    <span className="font-bold text-slate-900 text-sm">{rating.toUser?.fullName || 'Noma\'lum'}</span>
+                    <span className="font-bold text-slate-900 text-sm">
+                      {rating.toUser ? rating.toUser.fullName : 'Noma\'lum'}
+                    </span>
                     <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                      {rating.toUser?.role || '-'}
+                      {rating.toUser ? rating.toUser.role : '-'}
                     </span>
                   </div>
                 </td>
