@@ -154,6 +154,11 @@ export const api = {
     return res.json();
   },
 
+  getCouriers: async () => {
+    const res = await fetch(`${API_URL}/couriers`);
+    return res.json();
+  },
+
   saveRating: async (data: { fromUserId: string, toUserId: string, score: number, comment: string, week: string }) => {
     const res = await fetch(`${API_URL}/ratings`, {
       method: 'POST',

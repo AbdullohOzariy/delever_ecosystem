@@ -929,6 +929,19 @@ app.get('/api/operators', async (req, res) => {
   }
 });
 
+// YANGI: Kuryerlarni olish
+app.get('/api/couriers', async (req, res) => {
+  try {
+    const couriers = await prisma.user.findMany({
+      where: { role: 'COURIER', status: 'ACTIVE' },
+      select: { id: true, fullName: true }
+    });
+    res.json(couriers);
+  } catch (error) {
+    res.status(500).json({ error: "Kuryerlarni yuklashda xatolik" });
+  }
+});
+
 app.post('/api/ratings', async (req, res) => {
   try {
     const { fromUserId, toUserId, score, comment, week } = req.body; // week qo'shildi
