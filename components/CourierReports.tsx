@@ -62,16 +62,17 @@ const CourierReports: React.FC<CourierReportsProps> = ({ user }) => {
   const loadReport = async () => {
     setLoading(true);
     try {
-      let periodQuery = `month=${month}`;
-      
+      let data;
       if (periodType === 'weekly') {
         const monday = getDateFromWeek(week);
         const dateStr = monday.toISOString().slice(0, 10);
-        periodQuery = `period=weekly&week=${dateStr}`;
+        
+        // TUZATILDI: api.getKPIReport ishlatildi
+        const res = await fetch(`${import.meta.env.PROD ? '/api' : 'http://localhost:3001/api'}/kpi/report/${user.id}?period=weekly&week=${dateStr}`);
+        data = await res.json();
+      } else {
+        data = await api.getKPIReport(user.id, month);
       }
-
-      const res = await fetch(`http://localhost:3001/api/kpi/report/${user.id}?${periodQuery}`);
-      const data = await res.json();
       setReport(data);
     } catch (error) {
       console.error("Hisobot yuklashda xatolik:", error);

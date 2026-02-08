@@ -65,14 +65,13 @@ const AdminKPIReports: React.FC<AdminKPIReportsProps> = ({ users }) => {
     return ISOweekStart; 
   };
 
-  // YANGI: Hafta oralig'ini hisoblash (Yakshanba - Shanba)
   const getWeekRangeDisplay = (weekStr: string) => {
     const monday = getDateFromWeek(weekStr);
     const sunday = new Date(monday);
-    sunday.setDate(monday.getDate() - 1); // Yakshanba (Hafta boshi)
+    sunday.setDate(monday.getDate() - 1); 
     
     const saturday = new Date(sunday);
-    saturday.setDate(sunday.getDate() + 6); // Shanba (Hafta oxiri)
+    saturday.setDate(sunday.getDate() + 6); 
 
     return `${sunday.toLocaleDateString('uz-UZ')} - ${saturday.toLocaleDateString('uz-UZ')}`;
   };
@@ -84,16 +83,19 @@ const AdminKPIReports: React.FC<AdminKPIReportsProps> = ({ users }) => {
       
       const promises = targetUsers.map(async (user) => {
         try {
-          let periodQuery = `month=${month}`;
-          
+          // TUZATILDI: api.getKPIReport ishlatildi (fetch o'rniga)
+          let data;
           if (activeRole === UserRole.COURIER) {
             const monday = getDateFromWeek(week);
             const dateStr = monday.toISOString().slice(0, 10);
-            periodQuery = `period=weekly&week=${dateStr}`;
+            // api.ts da getKPIReport funksiyasini biroz o'zgartirish kerak bo'lishi mumkin
+            // Hozircha URL ni to'g'rilaymiz
+            const res = await fetch(`${import.meta.env.PROD ? '/api' : 'http://localhost:3001/api'}/kpi/report/${user.id}?period=weekly&week=${dateStr}`);
+            data = await res.json();
+          } else {
+            data = await api.getKPIReport(user.id, month);
           }
 
-          const res = await fetch(`http://localhost:3001/api/kpi/report/${user.id}?${periodQuery}`);
-          const data = await res.json();
           return { user, ...data };
         } catch (e) {
           return { user, finalScore: 0, facts: {}, scores: {} };
