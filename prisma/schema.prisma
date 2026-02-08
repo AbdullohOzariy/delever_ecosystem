@@ -84,7 +84,7 @@ model User {
   ratingsReceived  Rating[]      @relation("ReceivedRatings")
   ratingsGiven     Rating[]      @relation("GivenRatings")
 
-  // Imtihonlar (YANGI)
+  // Imtihonlar
   examResults      ExamResult[]
 
   @@map("users")
@@ -109,11 +109,25 @@ model Rating {
   @@map("ratings")
 }
 
-// IMTIHON TIZIMI (YANGI)
+// SKRIPTLAR (YANGI)
+model Script {
+  id          String   @id @default(uuid())
+  title       String
+  content     String   @db.Text
+  category    String?
+  tags        String[] // Array of strings (PostgreSQL only)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("scripts")
+}
+
+// IMTIHON TIZIMI
 model Exam {
   id          String   @id @default(uuid())
-  title       String   // Masalan: "Mart oyi imtihoni"
-  questions   Json     // Savollar va javoblar (JSON formatda)
+  title       String
+  questions   Json
   createdAt   DateTime @default(now())
 
   results     ExamResult[]
@@ -130,9 +144,9 @@ model ExamResult {
   userId      String
   user        User     @relation(fields: [userId], references: [id])
 
-  score       Int      // Masalan: 8 (10 dan)
-  total       Int      // Masalan: 10
-  details     Json?    // Qaysi savolga qanday javob berdi
+  score       Int
+  total       Int
+  details     Json?
 
   date        DateTime @default(now())
 

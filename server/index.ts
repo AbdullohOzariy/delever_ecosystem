@@ -1033,6 +1033,44 @@ app.get('/api/ratings/all', async (req, res) => {
   }
 });
 
+// SKRIPTLAR (YANGI)
+app.get('/api/scripts', async (req, res) => {
+  try {
+    const scripts = await prisma.script.findMany({ orderBy: { createdAt: 'desc' } });
+    res.json(scripts);
+  } catch (error) { res.status(500).json({ error: "Skriptlarni yuklashda xatolik" }); }
+});
+
+app.post('/api/scripts', async (req, res) => {
+  try {
+    const { title, content, category, tags } = req.body;
+    const script = await prisma.script.create({
+      data: { title, content, category, tags }
+    });
+    res.json(script);
+  } catch (error) { res.status(500).json({ error: "Skript yaratishda xatolik" }); }
+});
+
+app.put('/api/scripts/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title, content, category, tags } = req.body;
+    const script = await prisma.script.update({
+      where: { id },
+      data: { title, content, category, tags }
+    });
+    res.json(script);
+  } catch (error) { res.status(500).json({ error: "Skript yangilashda xatolik" }); }
+});
+
+app.delete('/api/scripts/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    await prisma.script.delete({ where: { id } });
+    res.json({ message: "Skript o'chirildi" });
+  } catch (error) { res.status(500).json({ error: "Skript o'chirishda xatolik" }); }
+});
+
 // YYYY-Www formatidan haftaning Dushanba sanasini olish
 function getWeekStartFromWeekString(weekString: string) {
   const [yearStr, weekNumStr] = weekString.split('-W');

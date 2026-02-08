@@ -176,5 +176,36 @@ export const api = {
   getAllRatings: async () => {
     const res = await fetch(`${API_URL}/ratings/all`);
     return res.json();
+  },
+
+  // SCRIPTS (YANGI)
+  getScripts: async () => {
+    const res = await fetch(`${API_URL}/scripts`);
+    return res.json();
+  },
+
+  createScript: async (data: any) => {
+    const res = await fetch(`${API_URL}/scripts`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return res.json();
+  },
+
+  updateScript: async (id: string, data: any) => {
+    const res = await fetch(`${API_URL}/scripts/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return res.json();
+  },
+
+  deleteScript: async (id: string) => {
+    const res = await fetch(`${API_URL}/scripts/${id}`, {
+      method: 'DELETE',
+    });
+    return res.json();
   }
 };
