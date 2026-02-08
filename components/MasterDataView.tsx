@@ -8,7 +8,7 @@ interface Order {
   amount: number;
   deliveryPrice: number;
   deliveryType: string;
-  branch?: string; // YANGI
+  branch?: string; 
   createdAt: string;
   deliveryTimeSeconds: number;
   status: string;
@@ -24,12 +24,13 @@ const MasterDataView: React.FC = () => {
   const [search, setSearch] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' | 'info' } | null>(null);
+  const [showHelp, setShowHelp] = useState(false); // YANGI: Yordam oynasi
 
   // FILTERS
   const [showFilters, setShowFilters] = useState(false);
   const [dateRange, setDateRange] = useState({ start: '', end: '' });
   const [filterType, setFilterType] = useState('all'); 
-  const [filterBranch, setFilterBranch] = useState('all'); // YANGI
+  const [filterBranch, setFilterBranch] = useState('all'); 
   const [priceRange, setPriceRange] = useState({ min: '', max: '' });
 
   useEffect(() => {
@@ -39,7 +40,6 @@ const MasterDataView: React.FC = () => {
   const loadOrders = async () => {
     try {
       const data = await api.getOrders();
-      console.log("Yuklangan buyurtmalar:", data); // DEBUG
       setOrders(data);
     } catch (error) {
       console.error("Buyurtmalarni yuklashda xatolik:", error);
@@ -109,13 +109,10 @@ const MasterDataView: React.FC = () => {
            continue;
         }
 
-        // DEBUG: Branch ni tekshirish
-        // console.log(`Qator ${i}: Branch = ${cols[3]}`);
-
         newOrders.push({
           id: cols[1]?.replace(/"/g, '').trim(), 
           operatorName: cols[2]?.replace(/"/g, '').trim(), 
-          branch: cols[3]?.replace(/"/g, '').trim(), // YANGI: Filial
+          branch: cols[3]?.replace(/"/g, '').trim(), 
           deliveryType: cols[4]?.replace(/"/g, '').trim(),
           courierName: cols[5]?.replace(/"/g, '').trim(),
           amount: amount,
@@ -163,7 +160,6 @@ const MasterDataView: React.FC = () => {
     }
   };
 
-  // Unique Branches
   const uniqueBranches = useMemo(() => {
     const branches = new Set(orders.map(o => o.branch).filter(Boolean));
     return ['all', ...Array.from(branches)];
@@ -181,7 +177,7 @@ const MasterDataView: React.FC = () => {
       const matchesEnd = !dateRange.end || orderDate <= new Date(new Date(dateRange.end).setHours(23, 59, 59));
 
       const matchesType = filterType === 'all' || o.deliveryType === filterType;
-      const matchesBranch = filterBranch === 'all' || o.branch === filterBranch; // YANGI
+      const matchesBranch = filterBranch === 'all' || o.branch === filterBranch; 
 
       const matchesMin = !priceRange.min || o.amount >= Number(priceRange.min);
       const matchesMax = !priceRange.max || o.amount <= Number(priceRange.max);
@@ -211,6 +207,14 @@ const MasterDataView: React.FC = () => {
           </p>
         </div>
         <div className="flex flex-wrap gap-3">
+          <button 
+            onClick={() => setShowHelp(true)}
+            className="px-4 py-3 bg-slate-100 text-slate-500 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-slate-200 transition-all flex items-center justify-center gap-2"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>
+            Yo'riqnoma
+          </button>
+
           <button 
             onClick={() => setShowFilters(!showFilters)}
             className={`px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 border ${showFilters ? 'bg-slate-900 text-white border-slate-900 shadow-lg' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}
@@ -246,6 +250,66 @@ const MasterDataView: React.FC = () => {
           </button>
         </div>
       </header>
+
+      {/* HELP MODAL */}
+      {showHelp && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white w-full max-w-2xl rounded-[2.5rem] p-8 shadow-2xl animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-2xl font-black text-slate-900">CSV Yuklash Tartibi</h3>
+              <button onClick={() => setShowHelp(false)} className="p-2 bg-slate-100 rounded-full hover:bg-slate-200 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" x2="6" y1="6" y2="18"/><line x1="6" x2="18" y1="6" y2="18"/></svg>
+              </button>
+            </div>
+
+            <div className="space-y-6 text-sm text-slate-600">
+              <p>
+                Tizimga ma'lumotlarni yuklash uchun <b>.csv</b> formatidagi fayldan foydalaning. 
+                Faylning birinchi qatori (sarlavha) quyidagicha bo'lishi <b>SHART</b>:
+              </p>
+
+              <div className="bg-slate-100 p-4 rounded-xl font-mono text-xs break-all border border-slate-200">
+                {EXPECTED_HEADER}
+              </div>
+
+              <div>
+                <h4 className="font-bold text-slate-900 mb-2">Ustunlar tavsifi:</h4>
+                <ul className="list-disc pl-5 space-y-1">
+                  <li><b>№</b>: Tartib raqami (ixtiyoriy, lekin bo'lishi kerak)</li>
+                  <li><b>Ид.заказа</b>: Buyurtma ID raqami (unikal bo'lishi kerak)</li>
+                  <li><b>Оператор</b>: Operatorning to'liq ismi (F.I.SH)</li>
+                  <li><b>Название филиала</b>: Filial nomi (masalan: Chilonzor)</li>
+                  <li><b>Тип доставки</b>: "Доставка" yoki "Самовывоз"</li>
+                  <li><b>Курьер</b>: Kuryerning to'liq ismi (agar bo'lsa)</li>
+                  <li><b>Источник</b>: Buyurtma manbasi (masalan: App, Bot)</li>
+                  <li><b>Тип платежа</b>: Naqd, Click, Payme...</li>
+                  <li><b>Цена заказа</b>: Buyurtma summasi (faqat raqam)</li>
+                  <li><b>Цена доставки</b>: Yetkazib berish narxi (faqat raqam)</li>
+                  <li><b>Новый заказ</b>: Sana va vaqt (YYYY-MM-DD HH:mm:ss)</li>
+                  <li><b>Итоговое время</b>: Yetkazib berish vaqti (HH:mm:ss)</li>
+                </ul>
+              </div>
+
+              <div className="bg-amber-50 p-4 rounded-xl border border-amber-100 text-amber-800">
+                <p className="font-bold mb-1">⚠️ Muhim eslatmalar:</p>
+                <ul className="list-disc pl-5 space-y-1 text-xs">
+                  <li>Fayl kodirovkasi <b>UTF-8</b> bo'lishi kerak.</li>
+                  <li>Sana formati <b>2024-03-21 14:30:00</b> kabi bo'lishi kerak.</li>
+                  <li>Narx ustunlarida so'm belgisi yoki bo'sh joy bo'lmasligi kerak (faqat raqam).</li>
+                  <li>Agar operator yoki kuryer tizimda topilmasa, ular avtomatik yaratiladi (parol: 123456).</li>
+                </ul>
+              </div>
+            </div>
+            
+            <button 
+              onClick={() => setShowHelp(false)}
+              className="w-full bg-slate-900 text-white py-4 rounded-2xl font-black uppercase tracking-widest hover:bg-blue-600 transition-all shadow-xl mt-6"
+            >
+              Tushunarli
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* FILTERS PANEL */}
       {showFilters && (
