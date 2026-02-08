@@ -1,4 +1,8 @@
-const API_URL = 'http://localhost:3001/api';
+// API_URL ni o'zgartiramiz
+// Agar production bo'lsa, '/api' ishlatamiz (Nginx proxy qiladi)
+// Agar local bo'lsa, 'http://localhost:3001/api'
+
+const API_URL = import.meta.env.PROD ? '/api' : 'http://localhost:3001/api';
 
 export const api = {
   // Auth
