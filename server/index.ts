@@ -612,6 +612,7 @@ const getWeekRange = (dateStr: string) => {
   end.setDate(start.getDate() + 6); 
   end.setHours(23, 59, 59, 999);
 
+  console.log(`Week Range for ${dateStr}:`, start.toISOString(), end.toISOString()); // DEBUG
   return { start, end };
 };
 
@@ -632,6 +633,9 @@ app.get('/api/kpi/report/:userId', async (req, res) => {
     } else {
       return res.status(400).json({ error: "Davr ko'rsatilmagan" });
     }
+
+    // DEBUG: Sana oralig'ini log qilish
+    console.log(`KPI Report for ${userId}:`, startDate.toISOString(), endDate.toISOString());
 
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user) return res.status(404).json({ error: "User topilmadi" });
@@ -654,6 +658,9 @@ app.get('/api/kpi/report/:userId', async (req, res) => {
     }
 
     const orders = await prisma.order.findMany({ where: orderFilter });
+    
+    // DEBUG: Topilgan buyurtmalar soni
+    console.log(`Orders found: ${orders.length}`);
 
     if (user.role === 'COURIER') {
       let totalEarnings = 0;
