@@ -1038,7 +1038,10 @@ app.get('/api/scripts', async (req, res) => {
   try {
     const scripts = await prisma.script.findMany({ orderBy: { createdAt: 'desc' } });
     res.json(scripts);
-  } catch (error) { res.status(500).json({ error: "Skriptlarni yuklashda xatolik" }); }
+  } catch (error) { 
+    console.error("Skriptlarni yuklashda xatolik:", error); // DEBUG
+    res.status(500).json({ error: "Skriptlarni yuklashda xatolik: " + (error as Error).message }); 
+  }
 });
 
 app.post('/api/scripts', async (req, res) => {
