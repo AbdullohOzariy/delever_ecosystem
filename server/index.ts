@@ -755,7 +755,6 @@ app.get('/api/kpi/history/:userId', async (req, res) => {
   }
 });
 
-// YANGI: isConfirmed ni Payment orqali tekshirish
 app.get('/api/kpi/report/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
@@ -965,6 +964,38 @@ app.post('/api/payments/:id/pay', async (req, res) => {
     res.json({ message: "To'lov amalga oshirildi" });
   } catch (error) {
     res.status(500).json({ error: "To'lovda xatolik" });
+  }
+});
+
+// YANGI: To'lovni bekor qilish (CANCEL)
+app.post('/api/payments/:id/cancel', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // To'lovni topish
+    const payment = await prisma.payment.findUnique({ where: { id } });
+    if (!payment) return res.status(404).json({ error: "To'lov topilmadi" });
+
+    // To'lovni o'chirish (yoki statusini o'zgartirish)
+    // Biz o'chirishni tanlaymiz, shunda qayta tasdiqlash mumkin bo'ladi
+    await prisma.payment.delete({ where: { id } });
+
+    // KPI ni qayta ochish (isConfirmed = false)
+    // Buning uchun payment.period (week) va payment.userId kerak
+    const range = getWeekRange(payment.period);
+    
+    await prisma.dailyKPI.updateMany({
+      where: { 
+        userId: payment.userId, 
+        date: { gte: range.start, lte: range.end } 
+      },
+      data: { isConfirmed: false }
+    });
+
+    res.json({ message: "To'lov bekor qilindi va KPI qayta ochildi" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Bekor qilishda xatolik" });
   }
 });
 
