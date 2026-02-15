@@ -40,6 +40,13 @@ const getWeekRange = (dateStr: string) => {
 
 // YYYY-Www formatidan haftaning Dushanba sanasini olish
 function getWeekStartFromWeekString(weekString: string) {
+  // Agar sana formati kelsa (2026-02-02), o'zini qaytarish
+  if (!weekString.includes('-W')) {
+    const date = new Date(weekString);
+    date.setHours(0, 0, 0, 0);
+    return date;
+  }
+
   const [yearStr, weekNumStr] = weekString.split('-W');
   const year = parseInt(yearStr);
   const weekNum = parseInt(weekNumStr);
@@ -1142,19 +1149,6 @@ app.get('/api/operators', async (req, res) => {
     res.json(operators);
   } catch (error) {
     res.status(500).json({ error: "Operatorlarni yuklashda xatolik" });
-  }
-});
-
-// YANGI: Kuryerlarni olish
-app.get('/api/couriers', async (req, res) => {
-  try {
-    const couriers = await prisma.user.findMany({
-      where: { role: 'COURIER', status: 'ACTIVE' },
-      select: { id: true, fullName: true }
-    });
-    res.json(couriers);
-  } catch (error) {
-    res.status(500).json({ error: "Kuryerlarni yuklashda xatolik" });
   }
 });
 
