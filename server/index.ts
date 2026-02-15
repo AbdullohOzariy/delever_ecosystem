@@ -1045,110 +1045,97 @@ app.get('/api/payments/pending-feedback/:userId', async (req, res) => {
 });
 
 // ---------------------------------------------------------
-// ADMIN CHECKLIST (YANGI)
-// ---------------------------------------------------------
-app.get('/api/admin/checklist', async (req, res) => {
-  try {
-    const tasks = [];
-    const today = new Date();
-    
-    // 1. Kunlik Operator Baholash (Oxirgi 3 kun)
-    const activeOperators = await prisma.user.count({ where: { role: 'OPERATOR', status: 'ACTIVE' } });
-    
-    for (let i = 0; i < 3; i++) {
-      const d = new Date(today);
-      d.setDate(today.getDate() - i);
-      const dateStr = d.toISOString().slice(0, 10);
-      
-      const kpiCount = await prisma.dailyKPI.count({
-        where: { date: d, scriptScore: { not: null } } // Faqat operator KPI lari
-      });
-
-      if (kpiCount < activeOperators) {
-        tasks.push({
-          id: `daily-${dateStr}`,
-          title: `${dateStr}: Operatorlarni baholash`,
-          type: 'DAILY',
-          status: 'PENDING',
-          date: dateStr,
-          action: 'admin_kpi'
-        });
-      }
-    }
-
-    // 2. Haftalik Kuryer Tasdiqlash (Oxirgi 2 hafta)
-    // Har yakshanba kuni o'tgan haftani tekshiramiz
-    // Hozircha oddiyroq: Oxirgi 2 ta dushanbani olib, o'sha hafta tasdiqlanganmi yo'qmi tekshiramiz
-    
-    const currentDay = today.getDay(); // 0-6
-    const daysSinceMonday = currentDay === 0 ? 6 : currentDay - 1;
-    const lastMonday = new Date(today);
-    lastMonday.setDate(today.getDate() - daysSinceMonday);
-    
-    // O'tgan hafta dushanbasi
-    const prevMonday = new Date(lastMonday);
-    prevMonday.setDate(lastMonday.getDate() - 7);
-    
-    const weeksToCheck = [prevMonday]; // Faqat o'tgan haftani tekshiramiz (joriy hafta tugamagan)
-
-    for (const monday of weeksToCheck) {
-      const dateStr = monday.toISOString().slice(0, 10);
-      const range = getWeekRange(dateStr);
-      
-      // Shu hafta uchun to'lov bormi?
-      const paymentCount = await prisma.payment.count({
-        where: { 
-          period: dateStr, // Biz periodga week dateStr yozamiz
-          frequency: 'WEEKLY'
-        }
-      });
-
-      // Agar to'lov yo'q bo'lsa -> Tasdiqlash kerak
-      // Lekin avval buyurtma borligini tekshiramiz
-      const orderCount = await prisma.order.count({
-        where: { createdAt: { gte: range.start, lte: range.end }, status: 'DELIVERED' }
-      });
-
-      if (paymentCount === 0 && orderCount > 0) {
-        tasks.push({
-          id: `weekly-${dateStr}`,
-          title: `${dateStr} haftasi: Kuryerlarni tasdiqlash`,
-          type: 'WEEKLY',
-          status: 'PENDING',
-          date: dateStr,
-          action: 'kpi_reports'
-        });
-      } else if (orderCount === 0) {
-         tasks.push({
-          id: `upload-${dateStr}`,
-          title: `${dateStr} haftasi: CSV Yuklash`,
-          type: 'UPLOAD',
-          status: 'PENDING',
-          date: dateStr,
-          action: 'master_data'
-        });
-      }
-    }
-
-    res.json(tasks);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Checklist xatolik" });
-  }
-});
-
-// ---------------------------------------------------------
 // RATINGS (YANGI)
 // ---------------------------------------------------------
 app.get('/api/operators', async (req, res) => {
   try {
+    const { week } = req.query; // week parametri qo'shildi
+    
+    let where: any = { role: 'OPERATOR', status: 'ACTIVE' };
+
+    if (week) {
+      const range = getWeekRange(String(week));
+      
+      // Shu hafta davomida buyurtma olgan yoki KPI yozilgan operatorlarni topish
+      // 1. Buyurtmalar
+      const activeInOrders = await prisma.order.findMany({
+        where: { 
+          operatorId: { not: null },
+          createdAt: { gte: range.start, lte: range.end }
+        },
+        select: { operatorId: true },
+        distinct: ['operatorId']
+      });
+      
+      // 2. KPI
+      const activeInKPI = await prisma.dailyKPI.findMany({
+        where: { 
+          date: { gte: range.start, lte: range.end }
+        },
+        select: { userId: true },
+        distinct: ['userId']
+      });
+
+      const activeIds = new Set([
+        ...activeInOrders.map(o => o.operatorId),
+        ...activeInKPI.map(k => k.userId)
+      ].filter(Boolean));
+
+      where.id = { in: Array.from(activeIds) };
+    }
+
     const operators = await prisma.user.findMany({
-      where: { role: 'OPERATOR', status: 'ACTIVE' },
+      where,
       select: { id: true, fullName: true }
     });
     res.json(operators);
   } catch (error) {
     res.status(500).json({ error: "Operatorlarni yuklashda xatolik" });
+  }
+});
+
+// YANGI: Kuryerlarni olish (Filtr bilan)
+app.get('/api/couriers', async (req, res) => {
+  try {
+    const { week } = req.query;
+    
+    let where: any = { role: 'COURIER', status: 'ACTIVE' };
+
+    if (week) {
+      const range = getWeekRange(String(week));
+      
+      const activeInOrders = await prisma.order.findMany({
+        where: { 
+          courierId: { not: null },
+          createdAt: { gte: range.start, lte: range.end }
+        },
+        select: { courierId: true },
+        distinct: ['courierId']
+      });
+      
+      const activeInKPI = await prisma.dailyKPI.findMany({
+        where: { 
+          date: { gte: range.start, lte: range.end }
+        },
+        select: { userId: true },
+        distinct: ['userId']
+      });
+
+      const activeIds = new Set([
+        ...activeInOrders.map(o => o.courierId),
+        ...activeInKPI.map(k => k.userId)
+      ].filter(Boolean));
+
+      where.id = { in: Array.from(activeIds) };
+    }
+
+    const couriers = await prisma.user.findMany({
+      where,
+      select: { id: true, fullName: true }
+    });
+    res.json(couriers);
+  } catch (error) {
+    res.status(500).json({ error: "Kuryerlarni yuklashda xatolik" });
   }
 });
 
@@ -1174,8 +1161,23 @@ app.post('/api/ratings', async (req, res) => {
 
     // YANGI: Agar kuryer baholagan bo'lsa, uning PENDING to'lovini yangilash
     // Kuryer o'sha hafta uchun barcha operatorlarni baholaganmi tekshiramiz
+    
+    // 1. Shu hafta faol bo'lgan operatorlarni topish (YUQORIDAGI LOGIKA BILAN BIR XIL)
+    const range = getWeekRange(week);
+    const activeInOrders = await prisma.order.findMany({
+      where: { operatorId: { not: null }, createdAt: { gte: range.start, lte: range.end } },
+      select: { operatorId: true }, distinct: ['operatorId']
+    });
+    const activeInKPI = await prisma.dailyKPI.findMany({
+      where: { date: { gte: range.start, lte: range.end } },
+      select: { userId: true }, distinct: ['userId']
+    });
+    
+    // Faqat OPERATOR rolidagilarni filtrlaymiz (chunki KPI da kuryer ham bo'lishi mumkin)
+    const potentialOperatorIds = new Set([...activeInOrders.map(o => o.operatorId), ...activeInKPI.map(k => k.userId)].filter(Boolean));
+    
     const activeOperators = await prisma.user.findMany({
-      where: { role: 'OPERATOR', status: 'ACTIVE' },
+      where: { id: { in: Array.from(potentialOperatorIds) as string[] }, role: 'OPERATOR' },
       select: { id: true }
     });
     const activeOperatorIds = activeOperators.map(op => op.id);
