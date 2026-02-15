@@ -12,8 +12,10 @@ const FeedbackSystem: React.FC<FeedbackSystemProps> = ({ user }) => {
   const [loading, setLoading] = useState(true);
   const [ratings, setRatings] = useState<Record<string, { score: number, comment: string }>>({});
   const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' | 'info' } | null>(null);
-  const [pendingWeeks, setPendingWeeks] = useState<string[]>([]);
-  const [selectedWeek, setSelectedWeek] = useState<string>('');
+  
+  // pendingWeeks endi obyektlar massivi bo'ladi: { label: '2026-W06', value: '2026-02-02' }
+  const [pendingWeeks, setPendingWeeks] = useState<{ label: string, value: string }[]>([]);
+  const [selectedWeek, setSelectedWeek] = useState<string>(''); // Bu yerda 'value' (sana) turadi
 
   useEffect(() => {
     loadPendingFeedback();
@@ -25,20 +27,35 @@ const FeedbackSystem: React.FC<FeedbackSystemProps> = ({ user }) => {
     }
   }, [selectedWeek]);
 
+  const getWeekLabel = (dateStr: string) => {
+    if (dateStr.includes('-W')) return dateStr;
+    const date = new Date(dateStr);
+    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    const dayNum = d.getUTCDay() || 7;
+    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
+    const weekNo = Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1)/7);
+    return `${d.getUTCFullYear()}-W${weekNo.toString().padStart(2, '0')}`;
+  };
+
   const loadPendingFeedback = async () => {
     try {
       const payments = await api.getPendingFeedback(user.id);
-      const weeks = payments.map((p: any) => {
-        if (p.period.includes('-W')) return p.period;
-        // Sanani haftaga o'girish (agar kerak bo'lsa)
-        return p.period; 
-      });
-      const uniqueWeeks = [...new Set(weeks)] as string[];
+      const weeks = payments.map((p: any) => ({
+        label: getWeekLabel(p.period),
+        value: p.period
+      }));
+      
+      // Unikal haftalarni olish (value bo'yicha)
+      const uniqueWeeks = Array.from(new Map(weeks.map((item: any) => [item.value, item])).values());
+      
+      // @ts-ignore
       setPendingWeeks(uniqueWeeks);
       
       // Agar qarz bo'lsa, birinchisini avtomatik tanlash
       if (uniqueWeeks.length > 0 && !selectedWeek) {
-        setSelectedWeek(uniqueWeeks[0]);
+        // @ts-ignore
+        setSelectedWeek(uniqueWeeks[0].value);
       }
     } catch (error) {
       console.error("Kutilayotgan baholashlarni yuklashda xatolik");
@@ -97,7 +114,7 @@ const FeedbackSystem: React.FC<FeedbackSystemProps> = ({ user }) => {
         toUserId: targetId,
         score: rating.score,
         comment: rating.comment,
-        week: selectedWeek
+        week: selectedWeek // Bu yerda sana ketadi (2026-02-02)
       });
       
       setToast({ message: "Baho saqlandi!", type: 'success' });
@@ -133,39 +150,44 @@ const FeedbackSystem: React.FC<FeedbackSystemProps> = ({ user }) => {
     <div className="space-y-8 animate-in fade-in duration-500 relative pb-20">
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
-      <header className="bg-surface p-8 rounded-4xl shadow-soft border border-white/50 flex flex-col md:flex-row justify-between items-start gap-6">
+      {/* Notification Area */}
+      {pendingWeeks.length > 0 && (
+        <div className="bg-amber-50 border border-amber-200 p-4 rounded-2xl flex items-start gap-3 animate-pulse">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-amber-600 mt-0.5"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
+          <div>
+            <h4 className="font-bold text-amber-800 text-sm">Diqqat! Quyidagi haftalar uchun baholash qarz:</h4>
+            <div className="flex flex-wrap gap-2 mt-2">
+              {pendingWeeks.map(w => (
+                <button 
+                  key={w.value}
+                  onClick={() => setSelectedWeek(w.value)}
+                  className={`px-3 py-1 bg-white border border-amber-300 rounded-lg text-xs font-bold text-amber-700 hover:bg-amber-100 transition-colors ${selectedWeek === w.value ? 'ring-2 ring-amber-500' : ''}`}
+                >
+                  {w.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      <header className="bg-surface p-8 rounded-4xl shadow-soft border border-white/50 flex flex-col md:flex-row justify-between items-center gap-4">
         <div>
           <h2 className="text-3xl font-black text-primary tracking-tight">{targetLabel}ni Baholash</h2>
           <p className="text-secondary font-medium text-xs uppercase tracking-widest mt-1">
-            Quyidagi haftalar uchun baholashni yakunlang:
+            Haftalik maosh olish uchun barcha {targetLabel.toLowerCase()}ni baholang
           </p>
-          
-          <div className="flex flex-wrap gap-2 mt-4">
-            {pendingWeeks.map(w => (
-              <button 
-                key={w}
-                onClick={() => setSelectedWeek(w)}
-                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all border ${
-                  selectedWeek === w 
-                    ? 'bg-accent text-primary border-accent shadow-md scale-105' 
-                    : 'bg-background text-secondary border-secondary/10 hover:bg-white'
-                }`}
-              >
-                {w}
-              </button>
-            ))}
-          </div>
         </div>
         
-        <div className="flex items-center gap-4 bg-background p-4 rounded-3xl border border-secondary/5">
+        <div className="flex items-center gap-4">
+          <div className="bg-background px-4 py-3 rounded-2xl text-sm font-bold text-primary shadow-inner">
+            {pendingWeeks.find(w => w.value === selectedWeek)?.label || 'Hafta tanlanmagan'}
+          </div>
           <div className="text-right">
-            <p className="text-[10px] font-black text-secondary uppercase tracking-widest">Jarayon</p>
-            <p className={`text-2xl font-black ${progress === 100 ? 'text-emerald-600' : 'text-blue-600'}`}>
+            <p className="text-xs font-black text-secondary uppercase tracking-widest">Holat</p>
+            <p className={`text-lg font-black ${progress === 100 ? 'text-emerald-600' : 'text-blue-600'}`}>
               {ratedCount} / {totalTargets}
             </p>
-          </div>
-          <div className="w-12 h-12 rounded-full border-4 border-white shadow-sm flex items-center justify-center text-xs font-bold bg-surface">
-            {progress}%
           </div>
         </div>
       </header>
