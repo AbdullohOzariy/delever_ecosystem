@@ -16,6 +16,12 @@ export default {
         secondary: '#6F767E',
         accent: '#B4F481',
         accentHover: '#A0E070',
+        
+        // Yordamchi Ranglar
+        warning: '#FFD966',
+        info: '#70D1F4',
+        error: '#FF8F8F',
+        bonus: '#C396FF',
       },
       fontFamily: {
         sans: ['Inter', 'sans-serif'],

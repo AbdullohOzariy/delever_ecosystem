@@ -259,11 +259,11 @@ const AdminKPIReports: React.FC<AdminKPIReportsProps> = ({ users }) => {
   };
 
   const getStatusColor = (score: number) => {
-    if (score >= 4.8) return 'text-emerald-600 bg-emerald-50';
-    if (score >= 4.5) return 'text-emerald-600 bg-emerald-50';
-    if (score >= 4.0) return 'text-blue-600 bg-blue-50';
-    if (score >= 3.5) return 'text-amber-600 bg-amber-50';
-    return 'text-rose-600 bg-rose-50';
+    if (score >= 4.8) return 'bg-accent text-primary border-accent';
+    if (score >= 4.5) return 'bg-accent/80 text-primary border-accent';
+    if (score >= 4.0) return 'bg-info text-primary border-info';
+    if (score >= 3.5) return 'bg-warning text-primary border-warning';
+    return 'bg-error text-primary border-error';
   };
 
   const formatDisplayDate = () => {
@@ -422,7 +422,7 @@ const AdminKPIReports: React.FC<AdminKPIReportsProps> = ({ users }) => {
                         <td className="px-6 py-5 text-center font-bold text-secondary group-hover:text-primary transition-colors">{rep.scores?.speed || '-'}</td>
                         <td className="px-6 py-5 text-center font-bold text-secondary group-hover:text-primary transition-colors">{rep.scores?.check || '-'}</td>
                         <td className="px-6 py-5 text-right">
-                          <span className={`px-4 py-2 rounded-xl text-base font-black ${getStatusColor(Number(rep.finalScore))}`}>
+                          <span className={`px-4 py-2 rounded-xl text-base font-black border ${getStatusColor(Number(rep.finalScore))}`}>
                             {Number(rep.finalScore).toFixed(2)}
                           </span>
                         </td>

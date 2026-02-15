@@ -28,10 +28,10 @@ const KPIView: React.FC<KPIViewProps> = ({ user }) => {
   };
 
   const getScoreColor = (score: number) => {
-    if (score >= 4.8) return 'text-emerald-600 bg-emerald-50 border-emerald-200';
-    if (score >= 4.0) return 'text-blue-600 bg-blue-50 border-blue-200';
-    if (score >= 3.0) return 'text-amber-600 bg-amber-50 border-amber-200';
-    return 'text-rose-600 bg-rose-50 border-rose-200';
+    if (score >= 4.8) return 'text-primary bg-accent border-accent'; // A'lo
+    if (score >= 4.0) return 'text-primary bg-info border-info'; // Yaxshi
+    if (score >= 3.0) return 'text-primary bg-warning border-warning'; // O'rta
+    return 'text-primary bg-error border-error'; // Yomon
   };
 
   return (
@@ -60,12 +60,12 @@ const KPIView: React.FC<KPIViewProps> = ({ user }) => {
         <div className="bg-surface p-8 rounded-4xl shadow-soft border border-white/50 hover:shadow-hover transition-all duration-300 group">
           <div className="flex justify-between items-start mb-4">
             <p className="text-xs font-bold text-secondary uppercase tracking-widest">O'rtacha Ball</p>
-            <div className="p-2 bg-accent/10 rounded-xl text-accent group-hover:bg-accent group-hover:text-primary transition-colors">
+            <div className="p-2 bg-accent/20 rounded-xl text-primary group-hover:bg-accent transition-colors">
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>
             </div>
           </div>
           <p className="text-5xl font-black text-primary tracking-tighter">4.85</p>
-          <p className="text-xs text-emerald-500 font-bold mt-2 flex items-center gap-1">
+          <p className="text-xs text-accent font-bold mt-2 flex items-center gap-1">
             <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="18 15 12 9 6 15"/></svg>
             +0.2 o'tgan oyga nisbatan
           </p>
@@ -74,7 +74,7 @@ const KPIView: React.FC<KPIViewProps> = ({ user }) => {
         <div className="bg-surface p-8 rounded-4xl shadow-soft border border-white/50 hover:shadow-hover transition-all duration-300 group">
           <div className="flex justify-between items-start mb-4">
             <p className="text-xs font-bold text-secondary uppercase tracking-widest">Bonus</p>
-            <div className="p-2 bg-emerald-50 rounded-xl text-emerald-500 group-hover:bg-emerald-500 group-hover:text-white transition-colors">
+            <div className="p-2 bg-bonus/20 rounded-xl text-primary group-hover:bg-bonus transition-colors">
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
             </div>
           </div>
@@ -114,7 +114,7 @@ const KPIView: React.FC<KPIViewProps> = ({ user }) => {
                   <td className="px-6 py-5 text-center font-bold text-secondary group-hover:text-primary transition-colors">
                     {item.disciplineScore || '-'}
                   </td>
-                  <td className="px-6 py-5 text-right font-black text-emerald-600">
+                  <td className="px-6 py-5 text-right font-black text-bonus">
                     {Number(item.bonusAmount) > 0 ? `+${Number(item.bonusAmount).toLocaleString()}` : '-'}
                   </td>
                   <td className="px-6 py-5 text-xs font-medium text-secondary max-w-xs truncate">
