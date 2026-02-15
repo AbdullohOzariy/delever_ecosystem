@@ -1,202 +1,136 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { ICONS } from '../constants';
-import { PayoutStatus, PaymentRecord } from '../types';
+import React, { useState, useEffect } from 'react';
 import { api } from '../api';
 import Toast from './ui/Toast';
 
 const CashierPortal: React.FC = () => {
-  const [payments, setPayments] = useState<PaymentRecord[]>([]);
-  const [filter, setFilter] = useState<'ALL' | 'PENDING' | 'PAID'>('PENDING');
+  const [payments, setPayments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [filterStatus, setFilterStatus] = useState('PENDING');
   const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' | 'info' } | null>(null);
-
-  // NEW FILTERS
-  const [search, setSearch] = useState('');
-  const [date, setDate] = useState('');
 
   useEffect(() => {
     loadPayments();
-  }, [filter]);
+  }, [filterStatus]);
 
   const loadPayments = async () => {
     setLoading(true);
     try {
-      const status = filter === 'ALL' ? undefined : filter;
-      const data = await api.getPayments(status);
+      const data = await api.getPayments(filterStatus);
       setPayments(data);
     } catch (error) {
-      console.error(error);
+      console.error("To'lovlarni yuklashda xatolik");
     } finally {
       setLoading(false);
     }
   };
 
-  const handlePay = async (id: string, feedbackCompleted: boolean) => {
-    if (!feedbackCompleted) {
-      setToast({ message: "Xodim baholashni yakunlamagan. To'lov bloklangan.", type: 'error' });
-      return;
-    }
-
+  const handlePay = async (id: string) => {
     if (confirm("To'lovni tasdiqlaysizmi?")) {
       try {
         await api.payPayment(id);
-        setToast({ message: "To'lov muvaffaqiyatli amalga oshirildi!", type: 'success' });
+        setToast({ message: "To'lov amalga oshirildi", type: 'success' });
         loadPayments();
       } catch (error) {
-        setToast({ message: "Xatolik yuz berdi", type: 'error' });
+        setToast({ message: "Xatolik: Xodim baholashni yakunlamagan bo'lishi mumkin", type: 'error' });
       }
     }
   };
 
-  const getStatusColor = (status: string) => {
-    if (status === 'PAID') return 'bg-emerald-100 text-emerald-700 border-emerald-200';
-    if (status === 'PENDING') return 'bg-amber-100 text-amber-700 border-amber-200';
-    return 'bg-rose-100 text-rose-700 border-rose-200';
-  };
-
-  const filteredPayments = useMemo(() => {
-    return payments.filter(p => {
-      const matchesSearch = p.user.fullName.toLowerCase().includes(search.toLowerCase());
-      const matchesDate = !date || (p.processedAt && p.processedAt.startsWith(date)) || p.period.includes(date);
-      return matchesSearch && matchesDate;
-    });
-  }, [payments, search, date]);
-
   return (
-    <div className="space-y-8 animate-in fade-in duration-500 relative">
+    <div className="space-y-8 animate-in fade-in duration-500 pb-20">
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
-      <header className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm space-y-6">
-        <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-          <div>
-            <h2 className="text-3xl font-black text-slate-900 tracking-tight">Kassa: To'lovlar</h2>
-            <p className="text-slate-500 font-medium mt-1 uppercase text-[10px] tracking-widest">
-              Xodimlarga ish haqi va bonuslar to'lovi
-            </p>
-          </div>
-          
-          <div className="flex bg-slate-100 p-1.5 rounded-2xl border border-slate-200">
-            <button 
-              onClick={() => setFilter('PENDING')}
-              className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${filter === 'PENDING' ? 'bg-white text-amber-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
-            >
-              To'lanishi kerak
-            </button>
-            <button 
-              onClick={() => setFilter('PAID')}
-              className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${filter === 'PAID' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
-            >
-              Tarix (To'langan)
-            </button>
-            <button 
-              onClick={() => setFilter('ALL')}
-              className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${filter === 'ALL' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
-            >
-              Barchasi
-            </button>
-          </div>
+      <header className="bg-white dark:bg-slate-900 p-8 rounded-2xl border-2 border-slate-900 dark:border-slate-700 shadow-[4px_4px_0px_0px_rgba(15,23,42,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,0.1)] flex flex-col md:flex-row justify-between items-center gap-4 transition-colors duration-300">
+        <div>
+          <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight uppercase">Kassa</h2>
+          <p className="text-slate-500 dark:text-slate-400 font-bold text-xs uppercase tracking-widest mt-1">
+            To'lovlar va Hisob-kitoblar
+          </p>
         </div>
-
-        {/* Search & Date Filter */}
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="relative flex-1">
-            <input 
-              type="text" 
-              placeholder="Xodim ismini qidirish..." 
-              className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500 pl-10"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-            <svg className="absolute left-3 top-3.5 text-slate-400" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/></svg>
-          </div>
-          <div className="relative w-full md:w-48">
-            <input 
-              type="date" 
-              className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-            />
-          </div>
+        
+        <div className="flex bg-slate-100 dark:bg-slate-800 p-1.5 rounded-xl border-2 border-slate-200 dark:border-slate-700">
+          <button 
+            onClick={() => setFilterStatus('PENDING')}
+            className={`px-6 py-2.5 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${filterStatus === 'PENDING' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm border border-slate-200 dark:border-slate-600' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`}
+          >
+            Kutilmoqda
+          </button>
+          <button 
+            onClick={() => setFilterStatus('PAID')}
+            className={`px-6 py-2.5 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${filterStatus === 'PAID' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm border border-slate-200 dark:border-slate-600' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`}
+          >
+            To'langan
+          </button>
         </div>
       </header>
 
-      <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden overflow-x-auto">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border-2 border-slate-900 dark:border-slate-700 shadow-[4px_4px_0px_0px_rgba(15,23,42,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,0.1)] overflow-hidden">
         {loading ? (
-          <div className="p-20 text-center text-slate-400 font-bold">Yuklanmoqda...</div>
+          <div className="p-20 text-center text-slate-400 dark:text-slate-500 font-bold">Yuklanmoqda...</div>
         ) : (
           <table className="w-full text-left min-w-[800px]">
-            <thead className="bg-slate-900 text-white">
+            <thead className="bg-slate-50 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border-b-2 border-slate-900 dark:border-slate-700">
               <tr>
-                <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest">Xodim</th>
-                <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest">Davr</th>
-                <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-center">Summa</th>
-                <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-center">Status</th>
-                <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-center">Baholash</th>
-                <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-right">Amallar / Sana</th>
+                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest">Xodim</th>
+                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest">Davr</th>
+                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-right">Summa</th>
+                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-center">Holat</th>
+                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-right">Amal</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-50">
-              {filteredPayments.map((payment: any) => (
-                <tr key={payment.id} className="hover:bg-slate-50/80 transition-colors">
-                  <td className="px-8 py-5">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center font-black text-slate-500 text-sm">
-                        {payment.user.fullName.charAt(0)}
-                      </div>
-                      <div>
-                        <p className="font-bold text-slate-900 text-sm">{payment.user.fullName}</p>
-                        <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest">{payment.user.role}</p>
-                      </div>
+            <tbody className="divide-y-2 divide-slate-100 dark:divide-slate-800">
+              {payments.map((payment) => (
+                <tr key={payment.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                  <td className="px-6 py-5">
+                    <div className="flex flex-col">
+                      <span className="font-bold text-slate-900 dark:text-white text-sm">{payment.user.fullName}</span>
+                      <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+                        {payment.user.role}
+                      </span>
                     </div>
                   </td>
-                  <td className="px-8 py-5 text-sm font-bold text-slate-600">
+                  <td className="px-6 py-5 text-sm font-medium text-slate-600 dark:text-slate-400">
                     {payment.period}
                   </td>
-                  <td className="px-8 py-5 text-center font-black text-lg text-slate-900">
+                  <td className="px-6 py-5 text-right font-black text-slate-900 dark:text-white text-lg">
                     {Number(payment.amount).toLocaleString()} UZS
                   </td>
-                  <td className="px-8 py-5 text-center">
-                    <span className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest border ${getStatusColor(payment.status)}`}>
-                      {payment.status === 'PENDING' ? 'Kutilmoqda' : 'To\'landi'}
+                  <td className="px-6 py-5 text-center">
+                    <span className={`px-3 py-1 rounded-lg font-black text-[10px] uppercase tracking-widest border-2 ${
+                      payment.status === 'PAID' 
+                        ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800' 
+                        : 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800'
+                    }`}>
+                      {payment.status}
                     </span>
                   </td>
-                  <td className="px-8 py-5 text-center">
-                    {payment.feedbackCompleted ? (
-                      <span className="text-emerald-500 font-bold text-xs">✅ Yakunlangan</span>
-                    ) : (
-                      <span className="text-rose-500 font-bold text-xs">❌ Kutilmoqda</span>
-                    )}
-                  </td>
-                  <td className="px-8 py-5 text-right">
+                  <td className="px-6 py-5 text-right">
                     {payment.status === 'PENDING' && (
                       <button 
-                        onClick={() => handlePay(payment.id, payment.feedbackCompleted)}
-                        className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-lg ${
+                        onClick={() => handlePay(payment.id)}
+                        disabled={!payment.feedbackCompleted}
+                        className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all border-2 ${
                           payment.feedbackCompleted 
-                            ? 'bg-slate-900 text-white hover:bg-emerald-600 shadow-slate-900/20' 
-                            : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                            ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 border-slate-900 dark:border-white hover:bg-emerald-600 dark:hover:bg-emerald-400 shadow-[2px_2px_0px_0px_rgba(0,0,0,0.2)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none' 
+                            : 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-600 border-slate-200 dark:border-slate-700 cursor-not-allowed'
                         }`}
                       >
-                        To'lash
+                        {payment.feedbackCompleted ? "To'lash" : "Baholash Kutilmoqda"}
                       </button>
                     )}
                     {payment.status === 'PAID' && (
-                      <div className="flex flex-col items-end">
-                        <span className="text-xs font-bold text-slate-600">
-                          {new Date(payment.processedAt).toLocaleDateString()}
-                        </span>
-                        <span className="text-[10px] text-slate-400 font-medium">
-                          {new Date(payment.processedAt).toLocaleTimeString()}
-                        </span>
-                      </div>
+                      <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center justify-end gap-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
+                        To'landi
+                      </span>
                     )}
                   </td>
                 </tr>
               ))}
-              {filteredPayments.length === 0 && (
+              {payments.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="py-20 text-center text-slate-400 font-bold">
-                    To'lovlar topilmadi
+                  <td colSpan={5} className="py-20 text-center text-slate-400 dark:text-slate-600 font-bold">
+                    Ma'lumot topilmadi.
                   </td>
                 </tr>
               )}

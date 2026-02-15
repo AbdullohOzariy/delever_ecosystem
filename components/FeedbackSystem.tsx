@@ -8,12 +8,11 @@ interface FeedbackSystemProps {
 }
 
 const FeedbackSystem: React.FC<FeedbackSystemProps> = ({ user }) => {
-  const [targets, setTargets] = useState<any[]>([]); // targets = Operators or Couriers
+  const [targets, setTargets] = useState<any[]>([]); 
   const [loading, setLoading] = useState(true);
   const [ratings, setRatings] = useState<Record<string, { score: number, comment: string }>>({});
   const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' | 'info' } | null>(null);
   
-  // Hafta tanlash
   const getCurrentWeek = () => {
     const date = new Date();
     const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
@@ -33,21 +32,14 @@ const FeedbackSystem: React.FC<FeedbackSystemProps> = ({ user }) => {
     setLoading(true);
     try {
       let data = [];
-      
-      // Agar men Kuryer bo'lsam -> Operatorlarni baholayman
       if (user.role === UserRole.COURIER) {
         data = await api.getOperators();
-      } 
-      // Agar men Operator bo'lsam -> Kuryerlarni baholayman
-      else if (user.role === UserRole.OPERATOR) {
+      } else if (user.role === UserRole.OPERATOR) {
         data = await api.getCouriers();
       }
-
       setTargets(data);
 
-      // Mavjud baholarni yuklash
       const existingRatings = await api.getRatingsForCourierAndWeek(user.id, week);
-      
       const ratingsMap: Record<string, { score: number, comment: string }> = {};
       existingRatings.forEach((r: any) => {
         ratingsMap[r.toUserId] = { score: r.score, comment: r.comment || '' };
@@ -97,7 +89,7 @@ const FeedbackSystem: React.FC<FeedbackSystemProps> = ({ user }) => {
     }
   };
 
-  if (loading) return <div className="p-10 text-center text-slate-400 font-bold">Yuklanmoqda...</div>;
+  if (loading) return <div className="p-10 text-center text-slate-400 dark:text-slate-500 font-bold">Yuklanmoqda...</div>;
 
   const ratedCount = Object.keys(ratings).length;
   const totalTargets = targets.length;
@@ -106,13 +98,13 @@ const FeedbackSystem: React.FC<FeedbackSystemProps> = ({ user }) => {
   const targetLabel = user.role === UserRole.COURIER ? "Operatorlar" : "Kuryerlar";
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500 relative">
+    <div className="space-y-8 animate-in fade-in duration-500 relative pb-20">
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
-      <header className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">
+      <header className="bg-white dark:bg-slate-900 p-8 rounded-2xl border-2 border-slate-900 dark:border-slate-700 shadow-[4px_4px_0px_0px_rgba(15,23,42,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,0.1)] flex flex-col md:flex-row justify-between items-center gap-4 transition-colors duration-300">
         <div>
-          <h2 className="text-3xl font-black text-slate-900 tracking-tight">{targetLabel}ni Baholash</h2>
-          <p className="text-slate-500 font-medium mt-1 uppercase text-[10px] tracking-widest">
+          <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">{targetLabel}ni Baholash</h2>
+          <p className="text-slate-500 dark:text-slate-400 font-bold text-xs uppercase tracking-widest mt-1">
             Haftalik maosh olish uchun barcha {targetLabel.toLowerCase()}ni baholang
           </p>
         </div>
@@ -122,11 +114,11 @@ const FeedbackSystem: React.FC<FeedbackSystemProps> = ({ user }) => {
             type="week" 
             value={week}
             onChange={(e) => setWeek(e.target.value)}
-            className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold outline-none"
+            className="bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-lg px-4 py-3 text-sm font-bold outline-none focus:border-slate-900 dark:focus:border-white text-slate-900 dark:text-white transition-all"
           />
           <div className="text-right">
-            <p className="text-xs font-bold text-slate-400 uppercase">Holat</p>
-            <p className={`text-lg font-black ${progress === 100 ? 'text-emerald-500' : 'text-blue-500'}`}>
+            <p className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Holat</p>
+            <p className={`text-lg font-black ${progress === 100 ? 'text-emerald-600 dark:text-emerald-400' : 'text-blue-600 dark:text-blue-400'}`}>
               {ratedCount} / {totalTargets}
             </p>
           </div>
@@ -134,25 +126,33 @@ const FeedbackSystem: React.FC<FeedbackSystemProps> = ({ user }) => {
       </header>
 
       {/* Progress Bar */}
-      <div className="w-full bg-slate-100 rounded-full h-2.5 mb-6">
-        <div className="bg-blue-600 h-2.5 rounded-full transition-all duration-500" style={{ width: `${progress}%` }}></div>
+      <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-3 mb-6 border-2 border-slate-200 dark:border-slate-700 overflow-hidden">
+        <div className="bg-slate-900 dark:bg-white h-full rounded-full transition-all duration-500" style={{ width: `${progress}%` }}></div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {targets.map(target => (
-          <div key={target.id} className={`bg-white p-6 rounded-[2rem] border shadow-sm hover:shadow-md transition-all group ${ratings[target.id]?.score ? 'border-emerald-200 bg-emerald-50/30' : 'border-slate-100'}`}>
+          <div key={target.id} className={`bg-white dark:bg-slate-900 p-6 rounded-2xl border-2 transition-all group ${
+            ratings[target.id]?.score 
+              ? 'border-emerald-500 dark:border-emerald-500 shadow-[4px_4px_0px_0px_rgba(16,185,129,0.2)]' 
+              : 'border-slate-900 dark:border-slate-700 shadow-[4px_4px_0px_0px_rgba(15,23,42,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,0.1)] hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_0px_rgba(15,23,42,1)]'
+          }`}>
             <div className="flex items-center gap-4 mb-6">
-              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black text-xl ${ratings[target.id]?.score ? 'bg-emerald-100 text-emerald-600' : 'bg-blue-50 text-blue-600'}`}>
+              <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-black text-xl border-2 ${
+                ratings[target.id]?.score 
+                  ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border-emerald-500' 
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white border-slate-900 dark:border-slate-500'
+              }`}>
                 {target.fullName.charAt(0)}
               </div>
               <div>
-                <h4 className="font-bold text-slate-900">{target.fullName}</h4>
-                <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">
+                <h4 className="font-bold text-slate-900 dark:text-white">{target.fullName}</h4>
+                <p className="text-[10px] text-slate-400 dark:text-slate-500 font-black uppercase tracking-widest">
                   {user.role === UserRole.COURIER ? 'Operator' : 'Kuryer'}
                 </p>
               </div>
               {ratings[target.id]?.score && (
-                <div className="ml-auto bg-emerald-100 text-emerald-600 p-1.5 rounded-full">
+                <div className="ml-auto bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 p-1.5 rounded-lg border-2 border-emerald-500">
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
                 </div>
               )}
@@ -165,7 +165,7 @@ const FeedbackSystem: React.FC<FeedbackSystemProps> = ({ user }) => {
                     key={star}
                     onClick={() => handleRatingChange(target.id, star)}
                     className={`text-2xl transition-transform hover:scale-110 ${
-                      (ratings[target.id]?.score || 0) >= star ? 'text-amber-400' : 'text-slate-200'
+                      (ratings[target.id]?.score || 0) >= star ? 'text-amber-400' : 'text-slate-200 dark:text-slate-700'
                     }`}
                   >
                     ★
@@ -174,7 +174,7 @@ const FeedbackSystem: React.FC<FeedbackSystemProps> = ({ user }) => {
               </div>
 
               <textarea 
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm font-medium outline-none focus:ring-2 focus:ring-blue-100 resize-none h-20"
+                className="w-full bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-xl p-3 text-sm font-medium outline-none focus:border-slate-900 dark:focus:border-white text-slate-900 dark:text-white resize-none h-20 transition-all"
                 placeholder="Izoh qoldiring (ixtiyoriy)..."
                 value={ratings[target.id]?.comment || ''}
                 onChange={(e) => handleCommentChange(target.id, e.target.value)}
@@ -182,11 +182,11 @@ const FeedbackSystem: React.FC<FeedbackSystemProps> = ({ user }) => {
 
               <button 
                 onClick={() => submitRating(target.id)}
-                className={`w-full py-3 rounded-xl font-bold text-xs uppercase tracking-widest transition-all shadow-lg ${
+                className={`w-full py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all border-2 ${
                   ratings[target.id]?.score 
-                    ? 'bg-emerald-500 text-white hover:bg-emerald-600 shadow-emerald-500/20' 
-                    : 'bg-slate-900 text-white hover:bg-blue-600 shadow-slate-900/10'
-                }`}
+                    ? 'bg-emerald-500 text-white border-emerald-600 hover:bg-emerald-600 shadow-[2px_2px_0px_0px_rgba(5,150,105,1)]' 
+                    : 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 border-slate-900 dark:border-white hover:bg-slate-800 dark:hover:bg-slate-200 shadow-[2px_2px_0px_0px_rgba(0,0,0,0.2)]'
+                } active:translate-x-[1px] active:translate-y-[1px] active:shadow-none`}
               >
                 {ratings[target.id]?.score ? 'Yangilash' : 'Saqlash'}
               </button>
@@ -195,7 +195,7 @@ const FeedbackSystem: React.FC<FeedbackSystemProps> = ({ user }) => {
         ))}
         
         {targets.length === 0 && (
-          <div className="col-span-full py-20 text-center text-slate-400 font-bold">
+          <div className="col-span-full py-20 text-center text-slate-400 dark:text-slate-600 font-bold">
             {targetLabel} topilmadi.
           </div>
         )}

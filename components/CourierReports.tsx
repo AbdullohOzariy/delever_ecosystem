@@ -67,7 +67,6 @@ const CourierReports: React.FC<CourierReportsProps> = ({ user }) => {
         const monday = getDateFromWeek(week);
         const dateStr = monday.toISOString().slice(0, 10);
         
-        // TUZATILDI: api.getKPIReport ishlatildi
         const res = await fetch(`${import.meta.env.PROD ? '/api' : 'http://localhost:3001/api'}/kpi/report/${user.id}?period=weekly&week=${dateStr}`);
         data = await res.json();
       } else {
@@ -81,13 +80,13 @@ const CourierReports: React.FC<CourierReportsProps> = ({ user }) => {
     }
   };
 
-  if (loading) return <div className="p-10 text-center font-bold text-slate-400">Yuklanmoqda...</div>;
+  if (loading) return <div className="p-10 text-center font-bold text-slate-400 dark:text-slate-500">Yuklanmoqda...</div>;
 
   if (!report || !report.facts) {
     return (
-      <div className="py-20 text-center bg-white rounded-[2.5rem] border border-slate-100">
-        <h2 className="text-3xl font-black text-slate-900">Hisobotlarim</h2>
-        <p className="text-slate-500 mt-4">Ma'lumot topilmadi.</p>
+      <div className="py-20 text-center bg-white dark:bg-slate-900 rounded-2xl border-2 border-slate-900 dark:border-slate-700">
+        <h2 className="text-3xl font-black text-slate-900 dark:text-white">Hisobotlarim</h2>
+        <p className="text-slate-500 dark:text-slate-400 mt-4">Ma'lumot topilmadi.</p>
       </div>
     );
   }
@@ -96,44 +95,44 @@ const CourierReports: React.FC<CourierReportsProps> = ({ user }) => {
 
   return (
     <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm">
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 bg-white dark:bg-slate-900 p-8 rounded-2xl border-2 border-slate-900 dark:border-slate-700 shadow-[4px_4px_0px_0px_rgba(15,23,42,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,0.1)] transition-colors duration-300">
         <div>
-          <h2 className="text-4xl font-black text-slate-900 tracking-tight">Yetkazib berish hisoboti</h2>
+          <h2 className="text-4xl font-black text-slate-900 dark:text-white tracking-tight uppercase">Yetkazib berish hisoboti</h2>
           
           {/* Filter Controls */}
           <div className="flex items-center gap-4 mt-4">
-            <div className="bg-slate-100 p-1 rounded-xl flex">
+            <div className="bg-slate-100 dark:bg-slate-800 p-1 rounded-xl flex border-2 border-slate-200 dark:border-slate-700">
               <button 
                 onClick={() => setPeriodType('monthly')}
-                className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${periodType === 'monthly' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-400'}`}
+                className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${periodType === 'monthly' ? 'bg-white dark:bg-slate-700 shadow-sm text-slate-900 dark:text-white' : 'text-slate-400 dark:text-slate-500'}`}
               >
                 Oylik
               </button>
               <button 
                 onClick={() => setPeriodType('weekly')}
-                className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${periodType === 'weekly' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-400'}`}
+                className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${periodType === 'weekly' ? 'bg-white dark:bg-slate-700 shadow-sm text-slate-900 dark:text-white' : 'text-slate-400 dark:text-slate-500'}`}
               >
                 Haftalik
               </button>
             </div>
             {periodType === 'monthly' ? (
-              <input type="month" value={month} onChange={(e) => setMonth(e.target.value)} className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm font-bold outline-none" />
+              <input type="month" value={month} onChange={(e) => setMonth(e.target.value)} className="bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-sm font-bold outline-none text-slate-900 dark:text-white" />
             ) : (
               <div className="flex flex-col">
-                <input type="week" value={week} onChange={(e) => setWeek(e.target.value)} className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm font-bold outline-none" />
-                <span className="text-[10px] text-slate-400 font-bold mt-1 text-center">{getWeekRangeDisplay(week)}</span>
+                <input type="week" value={week} onChange={(e) => setWeek(e.target.value)} className="bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-sm font-bold outline-none text-slate-900 dark:text-white" />
+                <span className="text-[10px] text-slate-400 dark:text-slate-500 font-bold mt-1 text-center">{getWeekRangeDisplay(week)}</span>
               </div>
             )}
           </div>
         </div>
 
-        <div className="bg-blue-600 text-white px-8 py-6 rounded-[2rem] shadow-xl shadow-blue-500/20 text-center min-w-[200px]">
+        <div className="bg-blue-600 text-white px-8 py-6 rounded-2xl shadow-[4px_4px_0px_0px_rgba(30,58,138,1)] border-2 border-blue-800 text-center min-w-[200px]">
           <p className="text-[10px] font-black uppercase opacity-70 tracking-widest mb-1">Jami Daromad</p>
           <p className="text-3xl font-black tracking-tight">
             {facts.totalEarnings?.toLocaleString()} <span className="text-sm font-normal opacity-80">UZS</span>
           </p>
           {facts.isConfirmed && (
-            <div className="mt-2 bg-white/20 py-1 px-3 rounded-lg inline-block text-[10px] font-bold uppercase tracking-widest">
+            <div className="mt-2 bg-white/20 py-1 px-3 rounded-lg inline-block text-[10px] font-bold uppercase tracking-widest border border-white/30">
               Tasdiqlangan
             </div>
           )}
@@ -142,31 +141,31 @@ const CourierReports: React.FC<CourierReportsProps> = ({ user }) => {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Buyurtmalar */}
-        <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm text-center group hover:border-blue-200 transition-all">
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Buyurtmalar</p>
-          <h4 className="text-4xl font-black text-slate-900">{facts.totalOrders}</h4>
+        <div className="bg-white dark:bg-slate-900 p-8 rounded-2xl border-2 border-slate-900 dark:border-slate-700 shadow-[4px_4px_0px_0px_rgba(15,23,42,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,0.1)] text-center group hover:translate-y-[-2px] transition-all">
+          <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2">Buyurtmalar</p>
+          <h4 className="text-4xl font-black text-slate-900 dark:text-white">{facts.totalOrders}</h4>
           <div className="mt-4 space-y-1">
             {Object.entries(facts.priceStats || {}).map(([price, count]) => (
-              <div key={price} className="flex justify-between text-xs text-slate-500 font-medium px-4">
+              <div key={price} className="flex justify-between text-xs text-slate-500 dark:text-slate-400 font-medium px-4">
                 <span>{Number(price).toLocaleString()} so'm:</span>
-                <span className="font-bold text-slate-700">{String(count)} ta</span>
+                <span className="font-bold text-slate-700 dark:text-slate-300">{String(count)} ta</span>
               </div>
             ))}
           </div>
         </div>
         
         {/* Tezlik */}
-        <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm text-center group hover:border-blue-200 transition-all">
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">O'rtacha vaqt</p>
-          <h4 className="text-4xl font-black text-slate-900">{facts.avgSpeedMinutes} <span className="text-lg text-slate-400">min</span></h4>
-          <div className="mt-4 bg-emerald-50 text-emerald-600 py-2 px-4 rounded-xl inline-block">
+        <div className="bg-white dark:bg-slate-900 p-8 rounded-2xl border-2 border-slate-900 dark:border-slate-700 shadow-[4px_4px_0px_0px_rgba(15,23,42,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,0.1)] text-center group hover:translate-y-[-2px] transition-all">
+          <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2">O'rtacha vaqt</p>
+          <h4 className="text-4xl font-black text-slate-900 dark:text-white">{facts.avgSpeedMinutes} <span className="text-lg text-slate-400 dark:text-slate-500">min</span></h4>
+          <div className="mt-4 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 py-2 px-4 rounded-xl inline-block border-2 border-emerald-100 dark:border-emerald-800">
             <p className="text-xs font-bold">Tezlik Bonusi</p>
             <p className="text-lg font-black">+{facts.speedBonusCount}</p>
           </div>
         </div>
 
         {/* Bonuslar */}
-        <div className="bg-emerald-500 p-8 rounded-[2.5rem] text-white shadow-lg text-center relative overflow-hidden">
+        <div className="bg-emerald-500 p-8 rounded-2xl text-white shadow-[4px_4px_0px_0px_rgba(6,95,70,1)] border-2 border-emerald-700 text-center relative overflow-hidden">
           <div className="absolute -right-4 -top-4 w-24 h-24 bg-white/20 rounded-full blur-2xl"></div>
           <p className="text-[10px] font-black opacity-70 uppercase tracking-widest mb-2">Qo'shimcha Bonuslar</p>
           
