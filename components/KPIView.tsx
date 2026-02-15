@@ -28,18 +28,19 @@ const KPIView: React.FC<KPIViewProps> = ({ user }) => {
   };
 
   const getScoreColor = (score: number) => {
-    if (score >= 4.8) return 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 border-emerald-200 dark:border-emerald-800';
-    if (score >= 4.0) return 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800';
-    if (score >= 3.0) return 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 border-amber-200 dark:border-amber-800';
-    return 'text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-900/30 border-rose-200 dark:border-rose-800';
+    if (score >= 4.8) return 'text-emerald-600 bg-emerald-50 border-emerald-200';
+    if (score >= 4.0) return 'text-blue-600 bg-blue-50 border-blue-200';
+    if (score >= 3.0) return 'text-amber-600 bg-amber-50 border-amber-200';
+    return 'text-rose-600 bg-rose-50 border-rose-200';
   };
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 pb-20">
-      <header className="flex flex-col md:flex-row justify-between items-center gap-6 bg-white dark:bg-slate-900 p-8 rounded-2xl border-2 border-slate-900 dark:border-slate-700 shadow-[4px_4px_0px_0px_rgba(15,23,42,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,0.1)] transition-colors duration-300">
+      {/* Header Card */}
+      <div className="flex flex-col md:flex-row justify-between items-center gap-6 bg-surface p-8 rounded-4xl shadow-soft border border-white/50">
         <div>
-          <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight uppercase">Mening Natijalarim</h2>
-          <p className="text-slate-500 dark:text-slate-400 font-bold text-xs uppercase tracking-widest mt-1">
+          <h2 className="text-3xl font-black text-primary tracking-tight">Mening Natijalarim</h2>
+          <p className="text-secondary font-medium text-sm mt-1">
             {new Date(month).toLocaleDateString('uz-UZ', { month: 'long', year: 'numeric' })}
           </p>
         </div>
@@ -47,63 +48,80 @@ const KPIView: React.FC<KPIViewProps> = ({ user }) => {
           type="month" 
           value={month}
           onChange={(e) => setMonth(e.target.value)}
-          className="bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-600 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:border-slate-900 dark:focus:border-white transition-all text-slate-900 dark:text-white"
+          className="bg-background border-none rounded-2xl px-5 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-accent/50 text-primary transition-all shadow-inner"
         />
-      </header>
+      </div>
 
+      {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {/* Summary Cards (Mock Data for now) */}
-        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border-2 border-slate-900 dark:border-slate-700 shadow-[4px_4px_0px_0px_rgba(15,23,42,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,0.1)]">
-          <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2">O'rtacha Ball</p>
-          <p className="text-4xl font-black text-slate-900 dark:text-white">4.85</p>
+        <div className="bg-surface p-8 rounded-4xl shadow-soft border border-white/50 hover:shadow-hover transition-all duration-300 group">
+          <div className="flex justify-between items-start mb-4">
+            <p className="text-xs font-bold text-secondary uppercase tracking-widest">O'rtacha Ball</p>
+            <div className="p-2 bg-accent/10 rounded-xl text-accent group-hover:bg-accent group-hover:text-primary transition-colors">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>
+            </div>
+          </div>
+          <p className="text-5xl font-black text-primary tracking-tighter">4.85</p>
+          <p className="text-xs text-emerald-500 font-bold mt-2 flex items-center gap-1">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="18 15 12 9 6 15"/></svg>
+            +0.2 o'tgan oyga nisbatan
+          </p>
         </div>
-        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border-2 border-slate-900 dark:border-slate-700 shadow-[4px_4px_0px_0px_rgba(15,23,42,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,0.1)]">
-          <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2">Bonus</p>
-          <p className="text-4xl font-black text-emerald-600 dark:text-emerald-400">+150k</p>
+
+        <div className="bg-surface p-8 rounded-4xl shadow-soft border border-white/50 hover:shadow-hover transition-all duration-300 group">
+          <div className="flex justify-between items-start mb-4">
+            <p className="text-xs font-bold text-secondary uppercase tracking-widest">Bonus</p>
+            <div className="p-2 bg-emerald-50 rounded-xl text-emerald-500 group-hover:bg-emerald-500 group-hover:text-white transition-colors">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            </div>
+          </div>
+          <p className="text-5xl font-black text-primary tracking-tighter">+150k</p>
+          <p className="text-xs text-secondary font-medium mt-2">So'nggi yangilanish: Bugun</p>
         </div>
       </div>
 
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border-2 border-slate-900 dark:border-slate-700 shadow-[4px_4px_0px_0px_rgba(15,23,42,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,0.1)] overflow-hidden">
+      {/* Table */}
+      <div className="bg-surface rounded-4xl shadow-soft border border-white/50 overflow-hidden p-2">
         <div className="overflow-x-auto">
           <table className="w-full text-left min-w-[800px]">
-            <thead className="bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-b-2 border-slate-900 dark:border-slate-700">
+            <thead className="bg-background text-secondary">
               <tr>
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest">Sana</th>
+                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest rounded-l-2xl">Sana</th>
                 <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-center">Skript</th>
                 <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-center">Xato</th>
                 <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-center">Intizom</th>
                 <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-right">Bonus</th>
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest">Izoh</th>
+                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest rounded-r-2xl">Izoh</th>
               </tr>
             </thead>
-            <tbody className="divide-y-2 divide-slate-100 dark:divide-slate-800">
+            <tbody className="divide-y divide-background">
               {kpiData.map((item) => (
-                <tr key={item.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                  <td className="px-6 py-4 font-bold text-slate-900 dark:text-white text-sm">
+                <tr key={item.id} className="hover:bg-background/50 transition-colors group">
+                  <td className="px-6 py-5 font-bold text-primary text-sm">
                     {new Date(item.date).toLocaleDateString()}
                   </td>
-                  <td className="px-6 py-4 text-center">
-                    <span className={`px-3 py-1 rounded-lg font-black text-xs border-2 ${getScoreColor(item.scriptScore || 0)}`}>
+                  <td className="px-6 py-5 text-center">
+                    <span className={`px-3 py-1.5 rounded-xl font-black text-xs border ${getScoreColor(item.scriptScore || 0)}`}>
                       {item.scriptScore || '-'}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-center font-bold text-slate-600 dark:text-slate-400">
+                  <td className="px-6 py-5 text-center font-bold text-secondary group-hover:text-primary transition-colors">
                     {item.errorScore || '-'}
                   </td>
-                  <td className="px-6 py-4 text-center font-bold text-slate-600 dark:text-slate-400">
+                  <td className="px-6 py-5 text-center font-bold text-secondary group-hover:text-primary transition-colors">
                     {item.disciplineScore || '-'}
                   </td>
-                  <td className="px-6 py-4 text-right font-black text-emerald-600 dark:text-emerald-400">
+                  <td className="px-6 py-5 text-right font-black text-emerald-600">
                     {Number(item.bonusAmount) > 0 ? `+${Number(item.bonusAmount).toLocaleString()}` : '-'}
                   </td>
-                  <td className="px-6 py-4 text-xs font-medium text-slate-500 dark:text-slate-500 max-w-xs truncate">
+                  <td className="px-6 py-5 text-xs font-medium text-secondary max-w-xs truncate">
                     {item.comment || '-'}
                   </td>
                 </tr>
               ))}
               {kpiData.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="py-20 text-center text-slate-400 dark:text-slate-600 font-bold">
+                  <td colSpan={6} className="py-20 text-center text-secondary font-bold">
                     Ma'lumot topilmadi
                   </td>
                 </tr>
