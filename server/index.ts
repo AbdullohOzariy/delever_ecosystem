@@ -618,6 +618,8 @@ app.post('/api/kpi/confirm-all', async (req, res) => {
     const { week, role } = req.body; // role: 'COURIER' or 'OPERATOR'
     const range = getWeekRange(week);
 
+    console.log(`Confirm All: Week ${week}, Role ${role}, Range: ${range.start} - ${range.end}`); // DEBUG
+
     // 1. Shu roldagi barcha xodimlarni topish
     const users = await prisma.user.findMany({
       where: { role: role, status: 'ACTIVE' }
@@ -685,13 +687,18 @@ app.post('/api/kpi/confirm-all', async (req, res) => {
             }
           });
           confirmedCount++;
+          console.log(`Payment created for ${user.fullName}: ${totalAmount}`); // DEBUG
 
           // Telegram xabar
           if (user.telegramId) {
             const message = `🎉 <b>Haftalik KPI Tasdiqlandi!</b>\n\nSizning ${week}-hafta uchun hisobotingiz tasdiqlandi.\nJami summa: <b>${totalAmount.toLocaleString()} UZS</b>\n\nIltimos, ${role === 'COURIER' ? 'operatorlarni' : 'kuryerlarni'} baholang, shunda to'lovni olishingiz mumkin.`;
             await sendTelegramMessage(user.telegramId, message);
           }
+        } else {
+           console.log(`Payment already exists for ${user.fullName}`); // DEBUG
         }
+      } else {
+         console.log(`No amount for ${user.fullName}`); // DEBUG
       }
     }
 
