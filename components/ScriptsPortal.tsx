@@ -15,11 +15,12 @@ const ScriptsPortal: React.FC<ScriptsPortalProps> = ({ user }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' | 'info' } | null>(null);
   
-  // Accordion state: qaysi kategoriyalar ochiq
   const [openCategories, setOpenCategories] = useState<Set<string>>(new Set());
 
-  // Form State
-  const [formData, setFormData] = useState({ title: '', content: '', category: '', tags: '' });
+  // Form State (YANGI: Massiv)
+  const [formItems, setFormItems] = useState([{ title: '', content: '' }]);
+  const [formCategory, setFormCategory] = useState('');
+  const [formTags, setFormTags] = useState('');
 
   useEffect(() => {
     loadScripts();
@@ -31,7 +32,6 @@ const ScriptsPortal: React.FC<ScriptsPortalProps> = ({ user }) => {
       const data = await api.getScripts();
       if (Array.isArray(data)) {
         setScripts(data);
-        // Barcha kategoriyalarni ochish
         const cats = new Set(data.map(s => s.category || 'Umumiy'));
         setOpenCategories(cats);
       } else {
@@ -46,25 +46,49 @@ const ScriptsPortal: React.FC<ScriptsPortalProps> = ({ user }) => {
   };
 
   const handleSave = async () => {
-    if (!formData.title || !formData.content) {
-      setToast({ message: "Sarlavha va matn kiritilishi shart", type: 'error' });
+    // Validatsiya
+    const validItems = formItems.filter(item => item.title && item.content);
+    if (validItems.length === 0) {
+      setToast({ message: "Kamida bitta sarlavha va matn kiriting", type: 'error' });
       return;
     }
 
     try {
-      const tagsArray = formData.tags.split(',').map(t => t.trim()).filter(Boolean);
+      const tagsArray = formTags.split(',').map(t => t.trim()).filter(Boolean);
       
       if (selectedScript && isEditing) {
-        await api.updateScript(selectedScript.id, { ...formData, tags: tagsArray });
+        // Tahrirlash (faqat bitta)
+        await api.updateScript(selectedScript.id, { 
+          title: formItems[0].title, 
+          content: formItems[0].content, 
+          category: formCategory, 
+          tags: tagsArray 
+        });
         setToast({ message: "Skript yangilandi", type: 'success' });
       } else {
-        await api.createScript({ ...formData, tags: tagsArray });
-        setToast({ message: "Skript yaratildi", type: 'success' });
+        // Yaratish (bir nechta bo'lishi mumkin)
+        const newScripts = validItems.map(item => ({
+          title: item.title,
+          content: item.content,
+          category: formCategory,
+          tags: tagsArray
+        }));
+
+        if (newScripts.length === 1) {
+          await api.createScript(newScripts[0]);
+        } else {
+          // Backend massiv qabul qiladigan qilib o'zgartirildi
+          // @ts-ignore
+          await api.createScript(newScripts); 
+        }
+        setToast({ message: `${newScripts.length} ta skript yaratildi`, type: 'success' });
       }
       
       setIsEditing(false);
       setSelectedScript(null);
-      setFormData({ title: '', content: '', category: '', tags: '' });
+      setFormItems([{ title: '', content: '' }]);
+      setFormCategory('');
+      setFormTags('');
       loadScripts();
     } catch (error) {
       setToast({ message: "Xatolik yuz berdi", type: 'error' });
@@ -86,18 +110,17 @@ const ScriptsPortal: React.FC<ScriptsPortalProps> = ({ user }) => {
 
   const openEdit = (script: any) => {
     setSelectedScript(script);
-    setFormData({
-      title: script.title,
-      content: script.content,
-      category: script.category || '',
-      tags: script.tags ? script.tags.join(', ') : ''
-    });
+    setFormItems([{ title: script.title, content: script.content }]);
+    setFormCategory(script.category || '');
+    setFormTags(script.tags ? script.tags.join(', ') : '');
     setIsEditing(true);
   };
 
   const openCreate = () => {
     setSelectedScript(null);
-    setFormData({ title: '', content: '', category: '', tags: '' });
+    setFormItems([{ title: '', content: '' }]);
+    setFormCategory('');
+    setFormTags('');
     setIsEditing(true);
   };
 
@@ -116,15 +139,30 @@ const ScriptsPortal: React.FC<ScriptsPortalProps> = ({ user }) => {
     setOpenCategories(newOpen);
   };
 
-  // Skriptlarni guruhlash
+  // Form Item qo'shish
+  const addFormItem = () => {
+    setFormItems([...formItems, { title: '', content: '' }]);
+  };
+
+  // Form Item o'chirish
+  const removeFormItem = (index: number) => {
+    const newItems = [...formItems];
+    newItems.splice(index, 1);
+    setFormItems(newItems);
+  };
+
+  // Form Item o'zgartirish
+  const updateFormItem = (index: number, field: 'title' | 'content', value: string) => {
+    const newItems = [...formItems];
+    newItems[index][field] = value;
+    setFormItems(newItems);
+  };
+
   const groupedScripts = useMemo(() => {
     const groups: Record<string, any[]> = {};
-    
     scripts.forEach(script => {
       const cat = script.category || 'Umumiy';
       if (!groups[cat]) groups[cat] = [];
-      
-      // Qidiruv
       if (search) {
         const matches = script.title.toLowerCase().includes(search.toLowerCase()) || 
                         script.content.toLowerCase().includes(search.toLowerCase()) ||
@@ -134,14 +172,13 @@ const ScriptsPortal: React.FC<ScriptsPortalProps> = ({ user }) => {
         groups[cat].push(script);
       }
     });
-
-    // Bo'sh guruhlarni olib tashlash
     Object.keys(groups).forEach(key => {
       if (groups[key].length === 0) delete groups[key];
     });
-
     return groups;
   }, [scripts, search]);
+
+  const categories = ['all', ...Array.from(new Set(scripts.map(s => s.category).filter(Boolean)))];
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 pb-20 relative">
@@ -227,13 +264,14 @@ const ScriptsPortal: React.FC<ScriptsPortalProps> = ({ user }) => {
                   {items.map((script: any) => (
                     <div 
                       key={script.id} 
-                      className="bg-white p-6 rounded-3xl border border-secondary/10 hover:border-accent/50 hover:shadow-md transition-all group relative"
+                      className="bg-white p-6 rounded-3xl border border-secondary/10 hover:border-accent/50 hover:shadow-md transition-all group relative cursor-pointer"
+                      onClick={() => { setSelectedScript(script); setIsEditing(false); }}
                     >
                       <div className="flex justify-between items-start mb-3">
                         <h4 className="text-lg font-bold text-primary">{script.title}</h4>
                         <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button 
-                            onClick={() => handleCopy(script.content)}
+                            onClick={(e) => { e.stopPropagation(); handleCopy(script.content); }}
                             className="p-1.5 bg-background rounded-lg text-secondary hover:text-primary hover:bg-accent/20 transition-colors"
                             title="Nusxalash"
                           >
@@ -241,10 +279,10 @@ const ScriptsPortal: React.FC<ScriptsPortalProps> = ({ user }) => {
                           </button>
                           {user.role === UserRole.ADMIN && (
                             <>
-                              <button onClick={() => openEdit(script)} className="p-1.5 bg-background rounded-lg text-secondary hover:text-blue-600 hover:bg-blue-50 transition-colors">
+                              <button onClick={(e) => { e.stopPropagation(); openEdit(script); }} className="p-1.5 bg-background rounded-lg text-secondary hover:text-blue-600 hover:bg-blue-50 transition-colors">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
                               </button>
-                              <button onClick={() => handleDelete(script.id)} className="p-1.5 bg-background rounded-lg text-secondary hover:text-rose-600 hover:bg-rose-50 transition-colors">
+                              <button onClick={(e) => { e.stopPropagation(); handleDelete(script.id); }} className="p-1.5 bg-background rounded-lg text-secondary hover:text-rose-600 hover:bg-rose-50 transition-colors">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
                               </button>
                             </>
@@ -277,7 +315,7 @@ const ScriptsPortal: React.FC<ScriptsPortalProps> = ({ user }) => {
       {/* MODAL (Create / Edit) */}
       {(isEditing || selectedScript) && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-primary/20 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-surface w-full max-w-2xl rounded-4xl p-8 shadow-2xl border border-white/50 animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto flex flex-col">
+          <div className="bg-surface w-full max-w-3xl rounded-4xl p-8 shadow-2xl border border-white/50 animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto flex flex-col">
             
             <div className="flex justify-between items-center mb-6 shrink-0">
               <h3 className="text-2xl font-black text-primary uppercase tracking-tight">
@@ -288,42 +326,95 @@ const ScriptsPortal: React.FC<ScriptsPortalProps> = ({ user }) => {
               </button>
             </div>
 
-            {isEditing && (
-              <div className="space-y-4 flex-1 overflow-y-auto pr-2">
-                <input 
-                  type="text" 
-                  placeholder="Sarlavha" 
-                  className="w-full bg-background border-none rounded-2xl px-4 py-3 text-lg font-bold outline-none focus:ring-2 focus:ring-accent/50 text-primary"
-                  value={formData.title}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                />
-                <div className="flex gap-4">
+            {isEditing ? (
+              <div className="space-y-6 flex-1 overflow-y-auto pr-2">
+                <div className="grid grid-cols-2 gap-4">
                   <input 
                     type="text" 
                     placeholder="Kategoriya (masalan: Sotuv)" 
-                    className="flex-1 bg-background border-none rounded-2xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-accent/50 text-primary"
-                    value={formData.category}
-                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                    className="bg-background border-none rounded-2xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-accent/50 text-primary"
+                    value={formCategory}
+                    onChange={(e) => setFormCategory(e.target.value)}
                   />
                   <input 
                     type="text" 
                     placeholder="Teglar (vergul bilan)" 
-                    className="flex-1 bg-background border-none rounded-2xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-accent/50 text-primary"
-                    value={formData.tags}
-                    onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
+                    className="bg-background border-none rounded-2xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-accent/50 text-primary"
+                    value={formTags}
+                    onChange={(e) => setFormTags(e.target.value)}
                   />
                 </div>
-                <textarea 
-                  placeholder="Skript matni..." 
-                  className="w-full bg-background border-none rounded-2xl p-4 text-base font-medium outline-none focus:ring-2 focus:ring-accent/50 text-primary resize-none h-64"
-                  value={formData.content}
-                  onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-                />
+
+                <div className="space-y-4">
+                  {formItems.map((item, index) => (
+                    <div key={index} className="bg-background p-4 rounded-3xl border border-secondary/10 relative group">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-xs font-black text-secondary uppercase tracking-widest">Blok #{index + 1}</span>
+                        {formItems.length > 1 && (
+                          <button onClick={() => removeFormItem(index)} className="text-rose-500 hover:text-rose-700 p-1">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" x2="6" y1="6" y2="18"/><line x1="6" x2="18" y1="6" y2="18"/></svg>
+                          </button>
+                        )}
+                      </div>
+                      <input 
+                        type="text" 
+                        placeholder="Sarlavha" 
+                        className="w-full bg-white border-none rounded-xl px-4 py-2 text-base font-bold outline-none focus:ring-2 focus:ring-accent/50 text-primary mb-2"
+                        value={item.title}
+                        onChange={(e) => updateFormItem(index, 'title', e.target.value)}
+                      />
+                      <textarea 
+                        placeholder="Matn..." 
+                        className="w-full bg-white border-none rounded-xl p-4 text-sm font-medium outline-none focus:ring-2 focus:ring-accent/50 text-primary resize-none h-32"
+                        value={item.content}
+                        onChange={(e) => updateFormItem(index, 'content', e.target.value)}
+                      />
+                    </div>
+                  ))}
+                </div>
+
+                {!selectedScript && (
+                  <button 
+                    onClick={addFormItem}
+                    className="w-full py-3 border-2 border-dashed border-secondary/20 rounded-2xl text-secondary font-bold hover:border-accent hover:text-accent transition-colors flex items-center justify-center gap-2"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" x2="12" y1="5" y2="19"/><line x1="5" x2="19" y1="12" y2="12"/></svg>
+                    Yana qo'shish
+                  </button>
+                )}
+
                 <button 
                   onClick={handleSave}
                   className="w-full bg-primary text-white py-4 rounded-2xl font-black uppercase tracking-widest hover:bg-accent hover:text-primary transition-all shadow-lg active:scale-95"
                 >
                   Saqlash
+                </button>
+              </div>
+            ) : (
+              <div className="flex-1 overflow-y-auto pr-2">
+                <div className="flex gap-2 mb-6">
+                  {selectedScript.category && (
+                    <span className="bg-accent/20 text-primary px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-widest border border-accent/30">
+                      {selectedScript.category}
+                    </span>
+                  )}
+                  {selectedScript.tags && selectedScript.tags.map((tag: string) => (
+                    <span key={tag} className="bg-background text-secondary px-2 py-1 rounded-xl text-[10px] font-bold uppercase tracking-widest border border-secondary/10">
+                      #{tag}
+                    </span>
+                  ))}
+                </div>
+                <div className="prose prose-slate max-w-none">
+                  <p className="text-lg text-primary leading-relaxed whitespace-pre-wrap font-medium">
+                    {selectedScript.content}
+                  </p>
+                </div>
+                <button 
+                  onClick={() => handleCopy(selectedScript.content)}
+                  className="w-full mt-8 py-4 bg-background text-primary rounded-2xl font-black uppercase tracking-widest hover:bg-accent transition-all shadow-sm active:scale-95 flex items-center justify-center gap-2"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                  Nusxalash
                 </button>
               </div>
             )}
