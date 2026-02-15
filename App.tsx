@@ -140,40 +140,40 @@ const App: React.FC = () => {
              style={{ backgroundImage: 'linear-gradient(#000 1px, transparent 1px), linear-gradient(90deg, #000 1px, transparent 1px)', backgroundSize: '40px 40px' }}>
         </div>
 
-        <div className="w-full max-w-md bg-white rounded-2xl shadow-[8px_8px_0px_0px_rgba(15,23,42,1)] border-2 border-slate-900 overflow-hidden p-10 relative z-10">
-          <div className="text-center mb-10">
-            <div className="w-16 h-16 bg-slate-900 rounded-xl mx-auto flex items-center justify-center text-white font-black text-3xl mb-6 border-2 border-slate-900 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)]">
+        <div className="w-full max-w-sm bg-white rounded-lg shadow-[6px_6px_0px_0px_rgba(15,23,42,1)] border-2 border-slate-900 overflow-hidden p-8 relative z-10">
+          <div className="text-center mb-8">
+            <div className="w-14 h-14 bg-slate-900 rounded-lg mx-auto flex items-center justify-center text-white font-black text-2xl mb-4 border-2 border-slate-900 shadow-[3px_3px_0px_0px_rgba(0,0,0,0.2)]">
               D
             </div>
-            <h1 className="text-3xl font-black text-slate-900 tracking-tighter uppercase mb-2">Xush kelibsiz</h1>
-            <p className="text-slate-500 font-bold text-sm uppercase tracking-widest">Delever Ekotizimi</p>
-            {isTelegram && <p className="text-emerald-600 text-xs font-black mt-4 bg-emerald-100 py-1 px-3 rounded-lg inline-block border-2 border-emerald-600 uppercase tracking-widest">Telegram orqali</p>}
+            <h1 className="text-2xl font-black text-slate-900 tracking-tighter uppercase mb-1">Xush kelibsiz</h1>
+            <p className="text-slate-500 font-bold text-xs uppercase tracking-widest">Delever Ekotizimi</p>
+            {isTelegram && <p className="text-emerald-600 text-[10px] font-black mt-3 bg-emerald-100 py-1 px-2 rounded border-2 border-emerald-600 uppercase tracking-widest">Telegram orqali</p>}
           </div>
           
-          <form onSubmit={handleLogin} className="space-y-5">
-            <div className="space-y-2">
-              <label className="text-xs font-black text-slate-900 uppercase tracking-widest ml-1">Login</label>
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black text-slate-900 uppercase tracking-widest ml-1">Login</label>
               <input 
                 name="username" 
                 type="text" 
                 required 
-                className="w-full px-5 py-4 rounded-xl bg-white border-2 border-slate-200 text-slate-900 placeholder-slate-400 outline-none focus:border-slate-900 focus:shadow-[4px_4px_0px_0px_rgba(15,23,42,1)] transition-all font-bold" 
+                className="w-full px-4 py-3 rounded-lg bg-white border-2 border-slate-200 text-slate-900 placeholder-slate-400 outline-none focus:border-slate-900 focus:shadow-[3px_3px_0px_0px_rgba(15,23,42,1)] transition-all font-bold text-sm" 
                 placeholder="admin" 
               />
             </div>
-            <div className="space-y-2">
-              <label className="text-xs font-black text-slate-900 uppercase tracking-widest ml-1">Parol</label>
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black text-slate-900 uppercase tracking-widest ml-1">Parol</label>
               <input 
                 name="password" 
                 type="password" 
                 required 
-                className="w-full px-5 py-4 rounded-xl bg-white border-2 border-slate-200 text-slate-900 placeholder-slate-400 outline-none focus:border-slate-900 focus:shadow-[4px_4px_0px_0px_rgba(15,23,42,1)] transition-all font-bold" 
+                className="w-full px-4 py-3 rounded-lg bg-white border-2 border-slate-200 text-slate-900 placeholder-slate-400 outline-none focus:border-slate-900 focus:shadow-[3px_3px_0px_0px_rgba(15,23,42,1)] transition-all font-bold text-sm" 
                 placeholder="••••••••" 
               />
             </div>
             <button 
               type="submit" 
-              className="w-full py-4 bg-slate-900 text-white font-black uppercase tracking-widest rounded-xl transition-all border-2 border-slate-900 hover:bg-white hover:text-slate-900 hover:shadow-[4px_4px_0px_0px_rgba(15,23,42,1)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none mt-4"
+              className="w-full py-3.5 bg-slate-900 text-white font-black uppercase tracking-widest rounded-lg transition-all border-2 border-slate-900 hover:bg-white hover:text-slate-900 hover:shadow-[3px_3px_0px_0px_rgba(15,23,42,1)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none mt-4 text-xs"
             >
               {isTelegram ? 'Bog\'lash va Kirish' : 'Tizimga Kirish'}
             </button>
