@@ -19,7 +19,7 @@ const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>('checklist'); 
   const [authLoading, setAuthLoading] = useState(true);
   const [users, setUsers] = useState<User[]>([]);
-  const [theme, setTheme] = useState<'light' | 'dark'>('light'); // Theme State
+  const [theme, setTheme] = useState<'light' | 'dark'>('light'); 
   
   const [isTelegram, setIsTelegram] = useState(false);
   const [telegramId, setTelegramId] = useState<number | null>(null);
@@ -27,14 +27,10 @@ const App: React.FC = () => {
   useEffect(() => {
     checkAuth();
     
-    // Load Theme
     const savedTheme = localStorage.getItem('theme') as 'light' | 'dark';
     if (savedTheme) {
       setTheme(savedTheme);
       document.documentElement.classList.toggle('dark', savedTheme === 'dark');
-    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-      setTheme('dark');
-      document.documentElement.classList.add('dark');
     }
   }, []);
 
@@ -145,67 +141,53 @@ const App: React.FC = () => {
   };
 
   if (authLoading) return (
-    <div className="min-h-screen flex items-center justify-center bg-[#F8FAFC] dark:bg-slate-900 transition-colors duration-300">
-      <div className="animate-spin rounded-full h-12 w-12 border-4 border-slate-900 dark:border-white border-t-transparent"></div>
+    <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="animate-spin rounded-full h-12 w-12 border-4 border-accent border-t-transparent"></div>
     </div>
   );
 
   if (!currentUser) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#F0F4F8] dark:bg-slate-950 p-4 relative overflow-hidden transition-colors duration-300">
-        {/* Retro Grid Background */}
-        <div className="absolute inset-0 z-0 opacity-[0.03] dark:opacity-[0.05]" 
-             style={{ backgroundImage: 'linear-gradient(currentColor 1px, transparent 1px), linear-gradient(90deg, currentColor 1px, transparent 1px)', backgroundSize: '40px 40px', color: theme === 'dark' ? '#fff' : '#000' }}>
-        </div>
-
-        {/* Theme Toggle (Login Page) */}
-        <button 
-          onClick={toggleTheme}
-          className="absolute top-6 right-6 p-3 rounded-lg bg-white dark:bg-slate-800 border-2 border-slate-900 dark:border-slate-400 text-slate-900 dark:text-white shadow-[4px_4px_0px_0px_rgba(15,23,42,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,0.2)] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all z-50"
-        >
-          {theme === 'light' ? (
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
-          ) : (
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
-          )}
-        </button>
-
-        <div className="w-full max-w-sm bg-white dark:bg-slate-900 rounded-lg shadow-[6px_6px_0px_0px_rgba(15,23,42,1)] dark:shadow-[6px_6px_0px_0px_rgba(255,255,255,0.1)] border-2 border-slate-900 dark:border-slate-400 overflow-hidden p-8 relative z-10 transition-all duration-300">
-          <div className="text-center mb-8">
-            <div className="w-14 h-14 bg-slate-900 dark:bg-white rounded-lg mx-auto flex items-center justify-center text-white dark:text-slate-900 font-black text-2xl mb-4 border-2 border-slate-900 dark:border-slate-400 shadow-[3px_3px_0px_0px_rgba(0,0,0,0.2)]">
+      <div className="min-h-screen flex items-center justify-center bg-background p-4 relative overflow-hidden">
+        {/* Soft Background Blob */}
+        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-accent/20 rounded-full blur-[150px]"></div>
+        
+        <div className="w-full max-w-sm bg-surface rounded-4xl shadow-soft p-10 relative z-10 border border-white/50">
+          <div className="text-center mb-10">
+            <div className="w-16 h-16 bg-accent rounded-2xl mx-auto flex items-center justify-center text-primary font-black text-3xl mb-6 shadow-lg shadow-accent/30">
               D
             </div>
-            <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tighter uppercase mb-1">Xush kelibsiz</h1>
-            <p className="text-slate-500 dark:text-slate-400 font-bold text-xs uppercase tracking-widest">Delever Ekotizimi</p>
-            {isTelegram && <p className="text-emerald-600 dark:text-emerald-400 text-[10px] font-black mt-3 bg-emerald-100 dark:bg-emerald-900/30 py-1 px-2 rounded border-2 border-emerald-600 dark:border-emerald-500 uppercase tracking-widest">Telegram orqali</p>}
+            <h1 className="text-3xl font-black text-primary tracking-tight mb-2">Xush kelibsiz</h1>
+            <p className="text-secondary font-medium text-sm">Delever Ekotizimi</p>
+            {isTelegram && <p className="text-accent font-bold text-xs mt-4 bg-accent/10 py-1 px-3 rounded-full inline-block">Telegram orqali</p>}
           </div>
           
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-black text-slate-900 dark:text-slate-300 uppercase tracking-widest ml-1">Login</label>
+          <form onSubmit={handleLogin} className="space-y-5">
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-secondary uppercase tracking-widest ml-1">Login</label>
               <input 
                 name="username" 
                 type="text" 
                 required 
-                className="w-full px-4 py-3 rounded-lg bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 outline-none focus:border-slate-900 dark:focus:border-white focus:shadow-[3px_3px_0px_0px_rgba(15,23,42,1)] dark:focus:shadow-[3px_3px_0px_0px_rgba(255,255,255,0.2)] transition-all font-bold text-sm" 
+                className="w-full px-5 py-4 rounded-2xl bg-background border-none text-primary placeholder-secondary/50 outline-none focus:ring-2 focus:ring-accent/50 transition-all font-medium" 
                 placeholder="admin" 
               />
             </div>
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-black text-slate-900 dark:text-slate-300 uppercase tracking-widest ml-1">Parol</label>
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-secondary uppercase tracking-widest ml-1">Parol</label>
               <input 
                 name="password" 
                 type="password" 
                 required 
-                className="w-full px-4 py-3 rounded-lg bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 outline-none focus:border-slate-900 dark:focus:border-white focus:shadow-[3px_3px_0px_0px_rgba(15,23,42,1)] dark:focus:shadow-[3px_3px_0px_0px_rgba(255,255,255,0.2)] transition-all font-bold text-sm" 
+                className="w-full px-5 py-4 rounded-2xl bg-background border-none text-primary placeholder-secondary/50 outline-none focus:ring-2 focus:ring-accent/50 transition-all font-medium" 
                 placeholder="••••••••" 
               />
             </div>
             <button 
               type="submit" 
-              className="w-full py-3.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-black uppercase tracking-widest rounded-lg transition-all border-2 border-slate-900 dark:border-white hover:bg-white dark:hover:bg-slate-900 hover:text-slate-900 dark:hover:text-white hover:shadow-[3px_3px_0px_0px_rgba(15,23,42,1)] dark:hover:shadow-[3px_3px_0px_0px_rgba(255,255,255,0.2)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none mt-4 text-xs"
+              className="w-full py-4 bg-accent hover:bg-accentHover text-primary font-bold rounded-2xl transition-all shadow-lg shadow-accent/20 active:scale-[0.98] mt-4"
             >
-              {isTelegram ? 'Bog\'lash va Kirish' : 'Tizimga Kirish'}
+              {isTelegram ? 'Bog\'lash va Kirish' : 'Kirish'}
             </button>
           </form>
         </div>
@@ -215,14 +197,14 @@ const App: React.FC = () => {
 
   if (isTelegram && currentUser.role === UserRole.COURIER) {
     return (
-      <div className="min-h-screen bg-[#F8FAFC] dark:bg-slate-950 p-4 transition-colors duration-300">
+      <div className="min-h-screen bg-background p-4">
         <CourierReports user={currentUser} />
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen bg-[#F8FAFC] dark:bg-slate-950 transition-colors duration-300">
+    <div className="flex min-h-screen bg-background text-primary font-sans">
       <Sidebar 
         user={currentUser} 
         activeTab={activeTab} 
