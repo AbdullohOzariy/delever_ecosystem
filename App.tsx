@@ -16,16 +16,30 @@ import { api } from './api';
 
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [activeTab, setActiveTab] = useState<string>('checklist'); 
+  const [activeTab, setActiveTab] = useState<string>(''); // Default bo'sh
   const [authLoading, setAuthLoading] = useState(true);
   const [users, setUsers] = useState<User[]>([]);
+  const [theme, setTheme] = useState<'light' | 'dark'>('light'); 
   
   const [isTelegram, setIsTelegram] = useState(false);
   const [telegramId, setTelegramId] = useState<number | null>(null);
 
   useEffect(() => {
     checkAuth();
+    
+    const savedTheme = localStorage.getItem('theme') as 'light' | 'dark';
+    if (savedTheme) {
+      setTheme(savedTheme);
+      document.documentElement.classList.toggle('dark', savedTheme === 'dark');
+    }
   }, []);
+
+  const toggleTheme = () => {
+    const newTheme = theme === 'light' ? 'dark' : 'light';
+    setTheme(newTheme);
+    localStorage.setItem('theme', newTheme);
+    document.documentElement.classList.toggle('dark', newTheme === 'dark');
+  };
 
   const checkAuth = async () => {
     if (window.Telegram?.WebApp?.initData) {
@@ -52,9 +66,22 @@ const App: React.FC = () => {
     if (token && savedUser) {
       const user = JSON.parse(savedUser);
       setCurrentUser(user);
+      setInitialTab(user); // Tabni sozlash
       if (user.role === UserRole.ADMIN) loadUsers();
     }
     setAuthLoading(false);
+  };
+
+  const setInitialTab = (user: User) => {
+    if (user.role === UserRole.ADMIN) {
+      setActiveTab('checklist');
+    } else if (user.role === UserRole.CASHIER) {
+      setActiveTab('payouts');
+    } else if (user.role === UserRole.COURIER) {
+      setActiveTab('courier_reports');
+    } else {
+      setActiveTab('kpi'); // Operator
+    }
   };
 
   const handleAuthSuccess = (response: any) => {
@@ -62,16 +89,10 @@ const App: React.FC = () => {
     localStorage.setItem('token', token);
     localStorage.setItem('delever_user', JSON.stringify(user));
     setCurrentUser(user);
+    setInitialTab(user); // Tabni sozlash
     
     if (user.role === UserRole.ADMIN) {
-      setActiveTab('checklist'); 
       loadUsers();
-    } else if (user.role === UserRole.CASHIER) {
-      setActiveTab('payouts');
-    } else if (user.role === UserRole.COURIER) {
-      setActiveTab('courier_reports');
-    } else {
-      setActiveTab('kpi');
     }
     setAuthLoading(false);
   };
@@ -110,6 +131,7 @@ const App: React.FC = () => {
     setCurrentUser(null);
     localStorage.removeItem('delever_user');
     localStorage.removeItem('token');
+    setActiveTab('');
   };
 
   const handleAddUser = async (newUser: User) => {
