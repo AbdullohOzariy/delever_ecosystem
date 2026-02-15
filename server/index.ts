@@ -1018,99 +1018,6 @@ app.post('/api/payments/reset-all', async (req, res) => {
 });
 
 // ---------------------------------------------------------
-// ADMIN CHECKLIST (YANGI)
-// ---------------------------------------------------------
-app.get('/api/admin/checklist', async (req, res) => {
-  try {
-    const tasks = [];
-    const today = new Date();
-    
-    // 1. Kunlik Operator Baholash (Oxirgi 3 kun)
-    const activeOperators = await prisma.user.count({ where: { role: 'OPERATOR', status: 'ACTIVE' } });
-    
-    for (let i = 0; i < 3; i++) {
-      const d = new Date(today);
-      d.setDate(today.getDate() - i);
-      const dateStr = d.toISOString().slice(0, 10);
-      
-      const kpiCount = await prisma.dailyKPI.count({
-        where: { date: d, scriptScore: { not: null } } // Faqat operator KPI lari
-      });
-
-      if (kpiCount < activeOperators) {
-        tasks.push({
-          id: `daily-${dateStr}`,
-          title: `${dateStr}: Operatorlarni baholash`,
-          type: 'DAILY',
-          status: 'PENDING',
-          date: dateStr,
-          action: 'admin_kpi'
-        });
-      }
-    }
-
-    // 2. Haftalik Kuryer Tasdiqlash (Oxirgi 2 hafta)
-    // Har yakshanba kuni o'tgan haftani tekshiramiz
-    // Hozircha oddiyroq: Oxirgi 2 ta dushanbani olib, o'sha hafta tasdiqlanganmi yo'qmi tekshiramiz
-    
-    const currentDay = today.getDay(); // 0-6
-    const daysSinceMonday = currentDay === 0 ? 6 : currentDay - 1;
-    const lastMonday = new Date(today);
-    lastMonday.setDate(today.getDate() - daysSinceMonday);
-    
-    // O'tgan hafta dushanbasi
-    const prevMonday = new Date(lastMonday);
-    prevMonday.setDate(lastMonday.getDate() - 7);
-    
-    const weeksToCheck = [prevMonday]; // Faqat o'tgan haftani tekshiramiz (joriy hafta tugamagan)
-
-    for (const monday of weeksToCheck) {
-      const dateStr = monday.toISOString().slice(0, 10);
-      const range = getWeekRange(dateStr);
-      
-      // Shu hafta uchun to'lov bormi?
-      const paymentCount = await prisma.payment.count({
-        where: { 
-          period: dateStr, // Biz periodga week dateStr yozamiz
-          frequency: 'WEEKLY'
-        }
-      });
-
-      // Agar to'lov yo'q bo'lsa -> Tasdiqlash kerak
-      // Lekin avval buyurtma borligini tekshiramiz
-      const orderCount = await prisma.order.count({
-        where: { createdAt: { gte: range.start, lte: range.end }, status: 'DELIVERED' }
-      });
-
-      if (paymentCount === 0 && orderCount > 0) {
-        tasks.push({
-          id: `weekly-${dateStr}`,
-          title: `${dateStr} haftasi: Kuryerlarni tasdiqlash`,
-          type: 'WEEKLY',
-          status: 'PENDING',
-          date: dateStr,
-          action: 'kpi_reports'
-        });
-      } else if (orderCount === 0) {
-         tasks.push({
-          id: `upload-${dateStr}`,
-          title: `${dateStr} haftasi: CSV Yuklash`,
-          type: 'UPLOAD',
-          status: 'PENDING',
-          date: dateStr,
-          action: 'master_data'
-        });
-      }
-    }
-
-    res.json(tasks);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Checklist xatolik" });
-  }
-});
-
-// ---------------------------------------------------------
 // RATINGS (YANGI)
 // ---------------------------------------------------------
 app.get('/api/operators', async (req, res) => {
@@ -1122,19 +1029,6 @@ app.get('/api/operators', async (req, res) => {
     res.json(operators);
   } catch (error) {
     res.status(500).json({ error: "Operatorlarni yuklashda xatolik" });
-  }
-});
-
-// YANGI: Kuryerlarni olish
-app.get('/api/couriers', async (req, res) => {
-  try {
-    const couriers = await prisma.user.findMany({
-      where: { role: 'COURIER', status: 'ACTIVE' },
-      select: { id: true, fullName: true }
-    });
-    res.json(couriers);
-  } catch (error) {
-    res.status(500).json({ error: "Kuryerlarni yuklashda xatolik" });
   }
 });
 
