@@ -33,8 +33,20 @@ const FeedbackSystem: React.FC<FeedbackSystemProps> = ({ user }) => {
   const loadPendingFeedback = async () => {
     try {
       const payments = await api.getPendingFeedback(user.id);
-      const weeks = payments.map((p: any) => p.period);
-      setPendingWeeks(weeks);
+      const weeks = payments.map((p: any) => {
+        // Agar sana bo'lsa (2026-02-02), uni haftaga o'giramiz
+        if (p.period.includes('-W')) return p.period;
+
+        const date = new Date(p.period);
+        const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+        const dayNum = d.getUTCDay() || 7;
+        d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+        const yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
+        const weekNo = Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1)/7);
+        return `${d.getUTCFullYear()}-W${weekNo.toString().padStart(2, '0')}`;
+      });
+      // Unikal haftalarni olish
+      setPendingWeeks([...new Set(weeks)] as string[]);
     } catch (error) {
       console.error("Kutilayotgan baholashlarni yuklashda xatolik");
     }
