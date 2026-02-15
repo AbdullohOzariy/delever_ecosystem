@@ -5,11 +5,16 @@ export default {
     "./App.tsx",
     "./main.tsx",
     "./components/**/*.{js,ts,jsx,tsx}",
-    "./src/**/*.{js,ts,jsx,tsx}" // Agar src bo'lsa
+    "./src/**/*.{js,ts,jsx,tsx}"
   ],
   darkMode: 'class',
   theme: {
-    extend: {},
+    extend: {
+      fontFamily: {
+        sans: ['Inter', 'sans-serif'],
+        display: ['Space Grotesk', 'sans-serif'],
+      },
+    },
   },
   plugins: [],
 }
