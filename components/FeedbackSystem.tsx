@@ -89,7 +89,7 @@ const FeedbackSystem: React.FC<FeedbackSystemProps> = ({ user }) => {
     }
   };
 
-  if (loading) return <div className="p-10 text-center text-slate-400 dark:text-slate-500 font-bold">Yuklanmoqda...</div>;
+  if (loading) return <div className="p-10 text-center text-secondary font-bold">Yuklanmoqda...</div>;
 
   const ratedCount = Object.keys(ratings).length;
   const totalTargets = targets.length;
@@ -101,10 +101,10 @@ const FeedbackSystem: React.FC<FeedbackSystemProps> = ({ user }) => {
     <div className="space-y-8 animate-in fade-in duration-500 relative pb-20">
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
-      <header className="bg-white dark:bg-slate-900 p-8 rounded-2xl border-2 border-slate-900 dark:border-slate-700 shadow-[4px_4px_0px_0px_rgba(15,23,42,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,0.1)] flex flex-col md:flex-row justify-between items-center gap-4 transition-colors duration-300">
+      <header className="bg-surface p-8 rounded-4xl shadow-soft border border-white/50 flex flex-col md:flex-row justify-between items-center gap-4">
         <div>
-          <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">{targetLabel}ni Baholash</h2>
-          <p className="text-slate-500 dark:text-slate-400 font-bold text-xs uppercase tracking-widest mt-1">
+          <h2 className="text-3xl font-black text-primary tracking-tight">{targetLabel}ni Baholash</h2>
+          <p className="text-secondary font-medium text-xs uppercase tracking-widest mt-1">
             Haftalik maosh olish uchun barcha {targetLabel.toLowerCase()}ni baholang
           </p>
         </div>
@@ -114,11 +114,11 @@ const FeedbackSystem: React.FC<FeedbackSystemProps> = ({ user }) => {
             type="week" 
             value={week}
             onChange={(e) => setWeek(e.target.value)}
-            className="bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-lg px-4 py-3 text-sm font-bold outline-none focus:border-slate-900 dark:focus:border-white text-slate-900 dark:text-white transition-all"
+            className="bg-background border-none rounded-2xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-accent/50 text-primary transition-all shadow-inner"
           />
           <div className="text-right">
-            <p className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Holat</p>
-            <p className={`text-lg font-black ${progress === 100 ? 'text-emerald-600 dark:text-emerald-400' : 'text-blue-600 dark:text-blue-400'}`}>
+            <p className="text-xs font-black text-secondary uppercase tracking-widest">Holat</p>
+            <p className={`text-lg font-black ${progress === 100 ? 'text-emerald-600' : 'text-blue-600'}`}>
               {ratedCount} / {totalTargets}
             </p>
           </div>
@@ -126,46 +126,46 @@ const FeedbackSystem: React.FC<FeedbackSystemProps> = ({ user }) => {
       </header>
 
       {/* Progress Bar */}
-      <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-3 mb-6 border-2 border-slate-200 dark:border-slate-700 overflow-hidden">
-        <div className="bg-slate-900 dark:bg-white h-full rounded-full transition-all duration-500" style={{ width: `${progress}%` }}></div>
+      <div className="w-full bg-background rounded-full h-3 mb-6 border border-secondary/10 overflow-hidden">
+        <div className="bg-primary h-full rounded-full transition-all duration-500" style={{ width: `${progress}%` }}></div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {targets.map(target => (
-          <div key={target.id} className={`bg-white dark:bg-slate-900 p-6 rounded-2xl border-2 transition-all group ${
+          <div key={target.id} className={`bg-surface p-6 rounded-4xl shadow-soft border transition-all group hover:shadow-hover duration-300 ${
             ratings[target.id]?.score 
-              ? 'border-emerald-500 dark:border-emerald-500 shadow-[4px_4px_0px_0px_rgba(16,185,129,0.2)]' 
-              : 'border-slate-900 dark:border-slate-700 shadow-[4px_4px_0px_0px_rgba(15,23,42,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,0.1)] hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_0px_rgba(15,23,42,1)]'
+              ? 'border-emerald-200' 
+              : 'border-white/50'
           }`}>
             <div className="flex items-center gap-4 mb-6">
-              <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-black text-xl border-2 ${
+              <div className={`w-14 h-14 rounded-2xl flex items-center justify-center font-black text-xl border ${
                 ratings[target.id]?.score 
-                  ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border-emerald-500' 
-                  : 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white border-slate-900 dark:border-slate-500'
+                  ? 'bg-emerald-50 text-emerald-600 border-emerald-200' 
+                  : 'bg-background text-primary border-secondary/10'
               }`}>
                 {target.fullName.charAt(0)}
               </div>
               <div>
-                <h4 className="font-bold text-slate-900 dark:text-white">{target.fullName}</h4>
-                <p className="text-[10px] text-slate-400 dark:text-slate-500 font-black uppercase tracking-widest">
+                <h4 className="font-bold text-primary text-lg">{target.fullName}</h4>
+                <p className="text-[10px] text-secondary font-black uppercase tracking-widest">
                   {user.role === UserRole.COURIER ? 'Operator' : 'Kuryer'}
                 </p>
               </div>
               {ratings[target.id]?.score && (
-                <div className="ml-auto bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 p-1.5 rounded-lg border-2 border-emerald-500">
+                <div className="ml-auto bg-emerald-50 text-emerald-600 p-2 rounded-xl border border-emerald-100">
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
                 </div>
               )}
             </div>
 
             <div className="space-y-4">
-              <div className="flex justify-center gap-2">
+              <div className="flex justify-center gap-2 bg-background p-3 rounded-2xl border border-secondary/5">
                 {[1, 2, 3, 4, 5].map((star) => (
                   <button
                     key={star}
                     onClick={() => handleRatingChange(target.id, star)}
                     className={`text-2xl transition-transform hover:scale-110 ${
-                      (ratings[target.id]?.score || 0) >= star ? 'text-amber-400' : 'text-slate-200 dark:text-slate-700'
+                      (ratings[target.id]?.score || 0) >= star ? 'text-amber-400' : 'text-slate-200'
                     }`}
                   >
                     ★
@@ -174,7 +174,7 @@ const FeedbackSystem: React.FC<FeedbackSystemProps> = ({ user }) => {
               </div>
 
               <textarea 
-                className="w-full bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-xl p-3 text-sm font-medium outline-none focus:border-slate-900 dark:focus:border-white text-slate-900 dark:text-white resize-none h-20 transition-all"
+                className="w-full bg-background border-none rounded-2xl p-4 text-sm font-medium outline-none focus:ring-2 focus:ring-accent/50 text-primary resize-none h-24 transition-all placeholder-secondary/50"
                 placeholder="Izoh qoldiring (ixtiyoriy)..."
                 value={ratings[target.id]?.comment || ''}
                 onChange={(e) => handleCommentChange(target.id, e.target.value)}
@@ -182,11 +182,11 @@ const FeedbackSystem: React.FC<FeedbackSystemProps> = ({ user }) => {
 
               <button 
                 onClick={() => submitRating(target.id)}
-                className={`w-full py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all border-2 ${
+                className={`w-full py-3 rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-lg active:scale-95 ${
                   ratings[target.id]?.score 
-                    ? 'bg-emerald-500 text-white border-emerald-600 hover:bg-emerald-600 shadow-[2px_2px_0px_0px_rgba(5,150,105,1)]' 
-                    : 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 border-slate-900 dark:border-white hover:bg-slate-800 dark:hover:bg-slate-200 shadow-[2px_2px_0px_0px_rgba(0,0,0,0.2)]'
-                } active:translate-x-[1px] active:translate-y-[1px] active:shadow-none`}
+                    ? 'bg-emerald-500 text-white hover:bg-emerald-600 shadow-emerald-500/20' 
+                    : 'bg-primary text-white hover:bg-accent hover:text-primary shadow-primary/20'
+                }`}
               >
                 {ratings[target.id]?.score ? 'Yangilash' : 'Saqlash'}
               </button>
@@ -195,8 +195,12 @@ const FeedbackSystem: React.FC<FeedbackSystemProps> = ({ user }) => {
         ))}
         
         {targets.length === 0 && (
-          <div className="col-span-full py-20 text-center text-slate-400 dark:text-slate-600 font-bold">
-            {targetLabel} topilmadi.
+          <div className="col-span-full py-20 text-center">
+            <div className="w-20 h-20 bg-background rounded-full flex items-center justify-center mx-auto mb-6 border border-secondary/10">
+              <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-secondary"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
+            </div>
+            <h3 className="text-2xl font-black text-primary">Topilmadi</h3>
+            <p className="text-secondary mt-2 font-medium">{targetLabel} ro'yxati bo'sh.</p>
           </div>
         )}
       </div>
