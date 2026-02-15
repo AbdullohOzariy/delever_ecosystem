@@ -22,17 +22,23 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 // UTILS
 // ---------------------------------------------------------
 
-// Haftalik hisobot logikasi (Yakshanba - Shanba)
+// Haftalik hisobot logikasi (Dushanba - Yakshanba) - TUZATILDI
 const getWeekRange = (dateStr: string) => {
   const date = new Date(dateStr);
-  const day = date.getDay(); 
+  const day = date.getDay(); // 0 (Sun) - 6 (Sat)
+
+  // Agar Dushanba (1) bo'lsa, o'zi qoladi.
+  // Agar Yakshanba (0) bo'lsa, 6 kun orqaga qaytish kerak (o'tgan Dushanba).
+  // Biz input type="week" dan har doim Dushanba sanasini olamiz, shuning uchun bu mantiq oddiyroq bo'lishi mumkin.
+
+  // Input type="week" har doim Dushanba sanasini beradi (masalan 2026-02-02)
+  // Shuning uchun start = date.
   
   const start = new Date(date);
-  start.setDate(date.getDate() - day); 
   start.setHours(0, 0, 0, 0);
 
   const end = new Date(start);
-  end.setDate(start.getDate() + 6); 
+  end.setDate(start.getDate() + 6); // Dushanba + 6 = Yakshanba
   end.setHours(23, 59, 59, 999);
 
   console.log(`Week Range for ${dateStr}:`, start.toISOString(), end.toISOString()); // DEBUG
