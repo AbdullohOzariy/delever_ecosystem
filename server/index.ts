@@ -1058,23 +1058,33 @@ app.get('/api/scripts', async (req, res) => {
 app.post('/api/scripts', async (req, res) => {
   try {
     const { title, content, category, tags } = req.body;
+    console.log("Creating script:", { title, content, category, tags }); // DEBUG
+
     const script = await prisma.script.create({
       data: { title, content, category, tags }
     });
     res.json(script);
-  } catch (error) { res.status(500).json({ error: "Skript yaratishda xatolik" }); }
+  } catch (error) { 
+    console.error("Script create error:", error); // DEBUG
+    res.status(500).json({ error: "Skript yaratishda xatolik: " + (error as Error).message }); 
+  }
 });
 
 app.put('/api/scripts/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const { title, content, category, tags } = req.body;
+    console.log("Updating script:", id, { title, content, category, tags }); // DEBUG
+
     const script = await prisma.script.update({
       where: { id },
       data: { title, content, category, tags }
     });
     res.json(script);
-  } catch (error) { res.status(500).json({ error: "Skript yangilashda xatolik" }); }
+  } catch (error) { 
+    console.error("Script update error:", error); // DEBUG
+    res.status(500).json({ error: "Skript yangilashda xatolik: " + (error as Error).message }); 
+  }
 });
 
 app.delete('/api/scripts/:id', async (req, res) => {
