@@ -113,32 +113,6 @@ const AdminKPIReports: React.FC<AdminKPIReportsProps> = ({ users }) => {
     }
   };
 
-  const handleConfirm = async (userId: string) => {
-    if (confirm("Tasdiqlaysizmi?")) {
-      try {
-        const monday = getDateFromWeek(week);
-        const dateStr = monday.toISOString().slice(0, 10);
-
-        await api.confirmKPI({ userId, week: dateStr });
-        setToast({ message: "Tasdiqlandi!", type: 'success' });
-        
-        const newEditing = new Set(editingUsers);
-        newEditing.delete(userId);
-        setEditingUsers(newEditing);
-
-        setReports(prev => prev.map(rep => {
-          if (rep.user.id === userId) {
-            return { ...rep, facts: { ...rep.facts, isConfirmed: true } };
-          }
-          return rep;
-        }));
-
-      } catch (error) {
-        setToast({ message: "Xatolik yuz berdi", type: 'error' });
-      }
-    }
-  };
-
   const handleConfirmAll = async () => {
     if (confirm(`Barcha ${activeRole === UserRole.COURIER ? 'kuryerlarni' : 'operatorlarni'} tasdiqlaysizmi?`)) {
       try {
@@ -148,7 +122,7 @@ const AdminKPIReports: React.FC<AdminKPIReportsProps> = ({ users }) => {
         const response = await api.confirmAllKPI({ week: dateStr, role: activeRole });
         setToast({ message: response.message, type: 'success' });
         
-        loadAllReports(); // Ro'yxatni yangilash
+        loadAllReports(); 
       } catch (error) {
         setToast({ message: "Xatolik yuz berdi", type: 'error' });
       }
@@ -404,8 +378,7 @@ const AdminKPIReports: React.FC<AdminKPIReportsProps> = ({ users }) => {
                     <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-center">Tezlik Bonusi</th>
                     <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-center">Maxsus Bonus</th>
                     <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-center">Qo'shimcha</th>
-                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-right">Jami Daromad</th>
-                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-right rounded-r-2xl">Amal</th>
+                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-right rounded-r-2xl">Jami Daromad</th>
                   </tr>
                 </thead>
               )}
@@ -427,6 +400,11 @@ const AdminKPIReports: React.FC<AdminKPIReportsProps> = ({ users }) => {
                         <div>
                           <p className="font-bold text-primary text-base">{rep.user.fullName}</p>
                           <p className="text-xs text-secondary font-medium tracking-wide">ID: {rep.user.id.slice(-4)}</p>
+                          {rep.facts?.isConfirmed && (
+                            <span className="inline-block mt-1 px-2 py-0.5 bg-emerald-100 text-emerald-700 text-[9px] font-bold uppercase tracking-widest rounded-md border border-emerald-200">
+                              Tasdiqlangan
+                            </span>
+                          )}
                         </div>
                       </div>
                     </td>
@@ -506,20 +484,6 @@ const AdminKPIReports: React.FC<AdminKPIReportsProps> = ({ users }) => {
                         </td>
                         <td className="px-6 py-5 text-right font-black text-primary text-lg">
                           {(rep.facts?.totalEarnings || 0).toLocaleString()} UZS
-                        </td>
-                        <td className="px-6 py-5 text-right">
-                          {rep.facts?.isConfirmed ? (
-                            <span className="bg-emerald-50 text-emerald-700 px-3 py-1 rounded-lg font-bold text-[10px] uppercase tracking-widest border border-emerald-200">
-                              Tasdiqlangan
-                            </span>
-                          ) : (
-                            <button 
-                              onClick={() => handleConfirm(rep.user.id)}
-                              className="bg-primary text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-accent hover:text-primary transition-colors shadow-lg shadow-primary/20 active:scale-95"
-                            >
-                              Tasdiqlash
-                            </button>
-                          )}
                         </td>
                       </>
                     )}
