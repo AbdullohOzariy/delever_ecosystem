@@ -1057,8 +1057,7 @@ app.get('/api/scripts', async (req, res) => {
 
 app.post('/api/scripts', async (req, res) => {
   try {
-    const { title, content, category, tags } = req.body;
-    console.log("Creating script:", { title, content, category, tags }); // DEBUG
+    console.log("Creating script body:", req.body); // DEBUG
 
     // YANGI: Agar massiv kelsa, createMany ishlatamiz
     if (Array.isArray(req.body)) {
@@ -1068,6 +1067,7 @@ app.post('/api/scripts', async (req, res) => {
        return res.json({ count });
     }
 
+    const { title, content, category, tags } = req.body;
     const script = await prisma.script.create({
       data: { title, content, category, tags }
     });
