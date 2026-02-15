@@ -93,6 +93,15 @@ export const api = {
     return res.json();
   },
 
+  confirmAllKPI: async (data: { week: string, role: string }) => {
+    const res = await fetch(`${API_URL}/kpi/confirm-all`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return res.json();
+  },
+
   getKPIReport: async (userId: string, month: string) => {
     const res = await fetch(`${API_URL}/kpi/report/${userId}?month=${month}`);
     return res.json();

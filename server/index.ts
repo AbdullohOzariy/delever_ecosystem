@@ -612,6 +612,96 @@ app.post('/api/kpi/confirm', async (req, res) => {
   }
 });
 
+// YANGI: Barchasini tasdiqlash
+app.post('/api/kpi/confirm-all', async (req, res) => {
+  try {
+    const { week, role } = req.body; // role: 'COURIER' or 'OPERATOR'
+    const range = getWeekRange(week);
+
+    // 1. Shu roldagi barcha xodimlarni topish
+    const users = await prisma.user.findMany({
+      where: { role: role, status: 'ACTIVE' }
+    });
+
+    let confirmedCount = 0;
+
+    for (const user of users) {
+      // Har bir xodim uchun tasdiqlash logikasini takrorlaymiz
+      // (Optimallashtirish mumkin, lekin hozircha xavfsiz yo'l)
+      
+      // KPI ni tasdiqlash
+      await prisma.dailyKPI.updateMany({
+        where: { userId: user.id, date: { gte: range.start, lte: range.end } },
+        data: { isConfirmed: true }
+      });
+
+      // Buyurtmalarni hisoblash
+      const orders = await prisma.order.findMany({
+        where: { 
+          [role === 'COURIER' ? 'courierId' : 'operatorId']: user.id, 
+          createdAt: { gte: range.start, lte: range.end }, 
+          status: 'DELIVERED' 
+        }
+      });
+      
+      const dailyKPIs = await prisma.dailyKPI.findMany({
+        where: { userId: user.id, date: { gte: range.start, lte: range.end } }
+      });
+
+      let totalAmount = 0;
+      
+      if (role === 'COURIER') {
+        orders.forEach(o => {
+          totalAmount += Number(o.deliveryPrice);
+          if (o.deliveryTimeSeconds && o.deliveryTimeSeconds < 1800) totalAmount += 1000;
+          if (Number(o.deliveryPrice) === 8000 || Number(o.deliveryPrice) === 10000) {
+            totalAmount += 1000; 
+          }
+        });
+      } else {
+        // Operator uchun hisoblash (agar kerak bo'lsa)
+        // Hozircha operatorga faqat bonus yoziladi
+      }
+      
+      dailyKPIs.forEach(k => {
+        totalAmount += Number(k.bonusAmount);
+      });
+
+      if (totalAmount > 0) {
+        // To'lov yaratish (agar oldin yaratilmagan bo'lsa)
+        const existingPayment = await prisma.payment.findFirst({
+          where: { userId: user.id, period: week, frequency: 'WEEKLY' }
+        });
+
+        if (!existingPayment) {
+          await prisma.payment.create({
+            data: {
+              userId: user.id,
+              amount: totalAmount,
+              frequency: 'WEEKLY',
+              period: week,
+              status: 'PENDING',
+              feedbackCompleted: false
+            }
+          });
+          confirmedCount++;
+
+          // Telegram xabar
+          if (user.telegramId) {
+            const message = `🎉 <b>Haftalik KPI Tasdiqlandi!</b>\n\nSizning ${week}-hafta uchun hisobotingiz tasdiqlandi.\nJami summa: <b>${totalAmount.toLocaleString()} UZS</b>\n\nIltimos, ${role === 'COURIER' ? 'operatorlarni' : 'kuryerlarni'} baholang, shunda to'lovni olishingiz mumkin.`;
+            await sendTelegramMessage(user.telegramId, message);
+          }
+        }
+      }
+    }
+
+    res.json({ message: `${confirmedCount} ta xodim tasdiqlandi` });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Barchasini tasdiqlashda xatolik" });
+  }
+});
+
 app.get('/api/kpi/history/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
