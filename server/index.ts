@@ -999,6 +999,24 @@ app.post('/api/payments/:id/cancel', async (req, res) => {
   }
 });
 
+// YANGI: Barcha to'lovlarni tozalash (RESET ALL)
+app.post('/api/payments/reset-all', async (req, res) => {
+  try {
+    // 1. Barcha to'lovlarni o'chirish
+    await prisma.payment.deleteMany({});
+
+    // 2. Barcha KPI larni tasdiqlanmagan qilish
+    await prisma.dailyKPI.updateMany({
+      data: { isConfirmed: false }
+    });
+
+    res.json({ message: "Barcha to'lovlar tozalandi va KPI lar ochildi" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Tozalashda xatolik" });
+  }
+});
+
 // ---------------------------------------------------------
 // ADMIN CHECKLIST (YANGI)
 // ---------------------------------------------------------
