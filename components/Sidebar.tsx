@@ -40,7 +40,8 @@ const Sidebar: React.FC<SidebarProps> = ({ user, activeTab, setActiveTab, onLogo
   };
 
   const formatDate = (date: Date) => {
-    return date.toLocaleDateString('uz-UZ', { day: 'numeric', month: 'long' });
+    // YANGI FORMAT: 15.02.2025
+    return date.toLocaleDateString('ru-RU'); 
   };
 
   return (
@@ -77,7 +78,7 @@ const Sidebar: React.FC<SidebarProps> = ({ user, activeTab, setActiveTab, onLogo
                   strokeWidth={2} 
                 />
                 <span className="hidden xl:inline">{item.label}</span>
-                <span className="xl:hidden">{item.label.slice(0, 3)}</span> {/* Kichik ekranda qisqartirish */}
+                <span className="xl:hidden">{item.label.slice(0, 3)}</span>
                 {activeTab === item.id && (
                   <div className="w-1.5 h-1.5 bg-accent rounded-full ml-1 animate-pulse" />
                 )}
