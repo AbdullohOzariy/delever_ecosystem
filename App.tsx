@@ -127,54 +127,53 @@ const App: React.FC = () => {
   };
 
   if (authLoading) return (
-    <div className="min-h-screen flex items-center justify-center bg-[#0F172A]">
-      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
+    <div className="min-h-screen flex items-center justify-center bg-[#F8FAFC]">
+      <div className="animate-spin rounded-full h-12 w-12 border-4 border-slate-900 border-t-transparent"></div>
     </div>
   );
 
   if (!currentUser) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0F172A] p-4 relative overflow-hidden">
-        {/* Background Effects */}
-        <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0">
-          <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-indigo-600/20 rounded-full blur-[120px] animate-pulse"></div>
-          <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-600/20 rounded-full blur-[120px] animate-pulse delay-1000"></div>
+      <div className="min-h-screen flex items-center justify-center bg-[#F0F4F8] p-4 relative overflow-hidden">
+        {/* Retro Grid Background */}
+        <div className="absolute inset-0 z-0 opacity-[0.03]" 
+             style={{ backgroundImage: 'linear-gradient(#000 1px, transparent 1px), linear-gradient(90deg, #000 1px, transparent 1px)', backgroundSize: '40px 40px' }}>
         </div>
 
-        <div className="w-full max-w-md bg-white/10 backdrop-blur-xl rounded-[2.5rem] shadow-2xl overflow-hidden p-10 border border-white/10 relative z-10 animate-in fade-in zoom-in-95 duration-500">
+        <div className="w-full max-w-md bg-white rounded-2xl shadow-[8px_8px_0px_0px_rgba(15,23,42,1)] border-2 border-slate-900 overflow-hidden p-10 relative z-10">
           <div className="text-center mb-10">
-            <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl mx-auto flex items-center justify-center text-white font-black text-3xl shadow-lg shadow-indigo-500/30 mb-6">
+            <div className="w-16 h-16 bg-slate-900 rounded-xl mx-auto flex items-center justify-center text-white font-black text-3xl mb-6 border-2 border-slate-900 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)]">
               D
             </div>
-            <h1 className="text-3xl font-black text-white tracking-tight mb-2">Xush kelibsiz</h1>
-            <p className="text-slate-400 font-medium text-sm">Delever Ekotizimiga kirish</p>
-            {isTelegram && <p className="text-emerald-400 text-xs font-bold mt-4 bg-emerald-500/10 py-1 px-3 rounded-full inline-block border border-emerald-500/20">Telegram orqali</p>}
+            <h1 className="text-3xl font-black text-slate-900 tracking-tighter uppercase mb-2">Xush kelibsiz</h1>
+            <p className="text-slate-500 font-bold text-sm uppercase tracking-widest">Delever Ekotizimi</p>
+            {isTelegram && <p className="text-emerald-600 text-xs font-black mt-4 bg-emerald-100 py-1 px-3 rounded-lg inline-block border-2 border-emerald-600 uppercase tracking-widest">Telegram orqali</p>}
           </div>
           
           <form onSubmit={handleLogin} className="space-y-5">
             <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-300 uppercase tracking-widest ml-1">Login</label>
+              <label className="text-xs font-black text-slate-900 uppercase tracking-widest ml-1">Login</label>
               <input 
                 name="username" 
                 type="text" 
                 required 
-                className="w-full px-5 py-4 rounded-2xl bg-slate-900/50 border border-slate-700 text-white placeholder-slate-600 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all font-medium" 
+                className="w-full px-5 py-4 rounded-xl bg-white border-2 border-slate-200 text-slate-900 placeholder-slate-400 outline-none focus:border-slate-900 focus:shadow-[4px_4px_0px_0px_rgba(15,23,42,1)] transition-all font-bold" 
                 placeholder="admin" 
               />
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-300 uppercase tracking-widest ml-1">Parol</label>
+              <label className="text-xs font-black text-slate-900 uppercase tracking-widest ml-1">Parol</label>
               <input 
                 name="password" 
                 type="password" 
                 required 
-                className="w-full px-5 py-4 rounded-2xl bg-slate-900/50 border border-slate-700 text-white placeholder-slate-600 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all font-medium" 
+                className="w-full px-5 py-4 rounded-xl bg-white border-2 border-slate-200 text-slate-900 placeholder-slate-400 outline-none focus:border-slate-900 focus:shadow-[4px_4px_0px_0px_rgba(15,23,42,1)] transition-all font-bold" 
                 placeholder="••••••••" 
               />
             </div>
             <button 
               type="submit" 
-              className="w-full py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold rounded-2xl transition-all shadow-lg shadow-indigo-600/20 active:scale-[0.98] mt-4"
+              className="w-full py-4 bg-slate-900 text-white font-black uppercase tracking-widest rounded-xl transition-all border-2 border-slate-900 hover:bg-white hover:text-slate-900 hover:shadow-[4px_4px_0px_0px_rgba(15,23,42,1)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none mt-4"
             >
               {isTelegram ? 'Bog\'lash va Kirish' : 'Tizimga Kirish'}
             </button>
@@ -186,7 +185,7 @@ const App: React.FC = () => {
 
   if (isTelegram && currentUser.role === UserRole.COURIER) {
     return (
-      <div className="min-h-screen bg-slate-50 p-4">
+      <div className="min-h-screen bg-[#F8FAFC] p-4">
         <CourierReports user={currentUser} />
       </div>
     );
