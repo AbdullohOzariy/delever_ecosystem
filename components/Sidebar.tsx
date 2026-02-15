@@ -12,7 +12,7 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ user, activeTab, setActiveTab, onLogout, theme, toggleTheme }) => {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
@@ -22,12 +22,12 @@ const Sidebar: React.FC<SidebarProps> = ({ user, activeTab, setActiveTab, onLogo
 
   const menuItems = [
     { id: 'checklist', label: 'Vazifalar', icon: ICONS.Dashboard, roles: [UserRole.ADMIN] },
-    { id: 'kpi', label: 'Mening KPI', icon: ICONS.KPI, roles: [UserRole.OPERATOR] },
-    { id: 'courier_reports', label: 'Hisobotlarim', icon: ICONS.CheckCircle, roles: [UserRole.COURIER] },
-    { id: 'admin_kpi', label: 'KPI Boshqaruvi', icon: ICONS.KPI, roles: [UserRole.ADMIN] },
-    { id: 'kpi_reports', label: 'KPI Hisoboti', icon: ICONS.Star, roles: [UserRole.ADMIN] },
+    { id: 'kpi', label: 'KPI', icon: ICONS.KPI, roles: [UserRole.OPERATOR] },
+    { id: 'courier_reports', label: 'Hisobot', icon: ICONS.CheckCircle, roles: [UserRole.COURIER] },
+    { id: 'admin_kpi', label: 'Boshqaruv', icon: ICONS.KPI, roles: [UserRole.ADMIN] },
+    { id: 'kpi_reports', label: 'Hisobotlar', icon: ICONS.Star, roles: [UserRole.ADMIN] },
     { id: 'master_data', label: 'Master Baza', icon: ICONS.Users, roles: [UserRole.ADMIN] },
-    { id: 'payouts', label: 'To\'lovlar', icon: ICONS.CASHIER, roles: [UserRole.CASHIER, UserRole.ADMIN] },
+    { id: 'payouts', label: 'Kassa', icon: ICONS.CASHIER, roles: [UserRole.CASHIER, UserRole.ADMIN] },
     { id: 'scripts', label: 'Skriptlar', icon: ICONS.CheckCircle, roles: [UserRole.OPERATOR, UserRole.ADMIN] },
     { id: 'rating', label: 'Reyting', icon: ICONS.Star, roles: [UserRole.OPERATOR, UserRole.ADMIN] },
     { id: 'feedback', label: 'Baholash', icon: ICONS.Star, roles: [UserRole.OPERATOR, UserRole.COURIER] },
@@ -38,106 +38,140 @@ const Sidebar: React.FC<SidebarProps> = ({ user, activeTab, setActiveTab, onLogo
 
   const handleTabClick = (id: string) => {
     setActiveTab(id);
-    setIsOpen(false);
+    setIsMobileMenuOpen(false);
   };
 
   const formatDate = (date: Date) => {
-    return date.toLocaleDateString('uz-UZ', { day: 'numeric', month: 'long', year: 'numeric' });
-  };
-
-  const formatTime = (date: Date) => {
-    return date.toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' });
+    return date.toLocaleDateString('uz-UZ', { day: 'numeric', month: 'long' });
   };
 
   return (
     <>
-      {/* Mobile Header */}
-      <div className="lg:hidden bg-surface/80 backdrop-blur-md text-primary p-4 flex items-center justify-between sticky top-0 z-50 border-b border-secondary/10">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-accent rounded-2xl flex items-center justify-center text-primary font-black text-lg shadow-soft">
-            D
-          </div>
-          <div>
-            <h1 className="text-lg font-bold tracking-tight text-primary font-display">Delever</h1>
-            <p className="text-[10px] text-secondary font-medium">{formatDate(currentTime)}</p>
-          </div>
-        </div>
-        <button onClick={() => setIsOpen(!isOpen)} className="p-2.5 bg-background rounded-2xl hover:bg-secondary/10 transition-colors">
-          {isOpen ? (
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-          ) : (
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
-          )}
-        </button>
-      </div>
-
-      {/* Sidebar Overlay */}
-      {isOpen && <div className="fixed inset-0 bg-primary/5 backdrop-blur-sm z-40 lg:hidden" onClick={() => setIsOpen(false)} />}
-
-      {/* Sidebar */}
-      <div className={`fixed inset-y-0 left-0 w-[280px] bg-surface z-50 transform transition-transform duration-500 cubic-bezier(0.2, 0.8, 0.2, 1) lg:translate-x-0 lg:static flex flex-col text-primary shrink-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'} shadow-soft lg:shadow-none lg:border-r border-secondary/5`}>
+      {/* DESKTOP HEADER */}
+      <header className="hidden lg:flex items-center justify-between px-8 py-4 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 sticky top-0 z-50 transition-colors duration-300">
         
-        {/* Logo Area */}
-        <div className="p-8 pb-6">
-          <div className="flex items-center gap-4 mb-8">
-            <div className="w-12 h-12 bg-accent rounded-2xl flex items-center justify-center text-primary font-black text-2xl shadow-lg shadow-accent/20">
+        {/* Logo & Time */}
+        <div className="flex items-center gap-6">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-accent rounded-xl flex items-center justify-center text-primary font-black text-xl shadow-lg shadow-accent/20">
               D
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-primary tracking-tight font-display">Delever</h1>
-              <p className="text-[10px] text-secondary font-medium tracking-widest uppercase">Ecosystem</p>
+              <h1 className="text-xl font-bold text-primary dark:text-white tracking-tight font-display">Delever</h1>
+              <p className="text-[10px] text-secondary font-medium tracking-widest uppercase">{formatDate(currentTime)}</p>
             </div>
-          </div>
-
-          {/* Time Widget */}
-          <div className="bg-background p-5 rounded-3xl relative overflow-hidden group border border-secondary/5">
-            <p className="text-[10px] text-secondary font-bold uppercase tracking-widest mb-1">{formatDate(currentTime)}</p>
-            <p className="text-3xl font-bold text-primary tracking-tight font-display">{formatTime(currentTime)}</p>
           </div>
         </div>
 
-        {/* Navigation */}
-        <nav className="flex-1 px-4 space-y-2 overflow-y-auto scrollbar-hide py-2">
+        {/* Navigation (Horizontal) */}
+        <nav className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1.5 rounded-2xl border border-slate-200 dark:border-slate-700">
           {filteredItems.map(item => (
             <button
-              key={`${item.id}-${item.label}`}
+              key={item.id}
               onClick={() => handleTabClick(item.id)}
-              className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 group relative overflow-hidden ${
+              className={`px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wide transition-all duration-300 flex items-center gap-2 ${
                 activeTab === item.id 
-                  ? 'bg-primary text-white shadow-lg shadow-primary/10' 
-                  : 'hover:bg-background text-secondary hover:text-primary'
+                  ? 'bg-white dark:bg-slate-700 text-primary dark:text-white shadow-sm scale-105' 
+                  : 'text-secondary hover:text-primary dark:hover:text-white hover:bg-white/50 dark:hover:bg-slate-700/50'
               }`}
             >
-              <div className={`transition-transform duration-300 ${activeTab === item.id ? 'scale-110' : 'group-hover:scale-110'}`}>
-                <item.icon />
-              </div>
-              <span className="font-semibold text-sm tracking-wide">{item.label}</span>
-              
-              {activeTab === item.id && (
-                <div className="ml-auto w-1.5 h-1.5 bg-accent rounded-full animate-pulse" />
-              )}
+              <item.icon className="w-4 h-4" strokeWidth={2} />
+              {item.label}
             </button>
           ))}
         </nav>
 
-        {/* User Profile */}
-        <div className="p-4 mt-auto">
-          <div className="bg-background rounded-3xl p-4 border border-secondary/5">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 rounded-2xl bg-white border border-secondary/10 flex items-center justify-center text-primary font-bold text-lg shadow-sm">
-                {user.fullName.charAt(0)}
-              </div>
-              <div className="overflow-hidden">
-                <p className="text-sm font-bold text-primary truncate font-display">{user.fullName}</p>
-                <p className="text-[10px] text-secondary font-bold uppercase tracking-widest">{user.role.replace('_', ' ')}</p>
-              </div>
+        {/* User & Theme */}
+        <div className="flex items-center gap-4">
+          <button 
+            onClick={toggleTheme}
+            className="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-secondary hover:text-primary dark:hover:text-white transition-colors"
+          >
+            {theme === 'light' ? (
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+            ) : (
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+            )}
+          </button>
+
+          <div className="flex items-center gap-3 pl-4 border-l border-slate-200 dark:border-slate-700">
+            <div className="text-right hidden xl:block">
+              <p className="text-sm font-bold text-primary dark:text-white">{user.fullName}</p>
+              <p className="text-[10px] text-secondary font-bold uppercase tracking-widest">{user.role}</p>
             </div>
             <button 
               onClick={onLogout}
-              className="w-full flex items-center justify-center gap-2 py-3.5 bg-white hover:bg-rose-50 text-rose-500 rounded-2xl transition-all border border-secondary/5 font-bold text-xs uppercase tracking-widest group shadow-sm hover:shadow-md"
+              className="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-900/20 text-rose-500 flex items-center justify-center hover:bg-rose-100 dark:hover:bg-rose-900/40 transition-colors"
             >
-              <ICONS.Logout />
-              <span className="group-hover:translate-x-1 transition-transform">Chiqish</span>
+              <ICONS.Logout className="w-5 h-5" strokeWidth={2} />
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* MOBILE HEADER */}
+      <div className="lg:hidden bg-white/80 dark:bg-slate-900/80 backdrop-blur-md p-4 flex items-center justify-between sticky top-0 z-50 border-b border-slate-200 dark:border-slate-800">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 bg-accent rounded-xl flex items-center justify-center text-primary font-black text-lg shadow-lg shadow-accent/20">
+            D
+          </div>
+          <h1 className="text-lg font-bold text-primary dark:text-white font-display">Delever</h1>
+        </div>
+        <button 
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          className="p-2.5 bg-slate-100 dark:bg-slate-800 rounded-xl text-primary dark:text-white"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
+        </button>
+      </div>
+
+      {/* MOBILE MENU OVERLAY */}
+      {isMobileMenuOpen && (
+        <div className="fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-sm lg:hidden" onClick={() => setIsMobileMenuOpen(false)} />
+      )}
+
+      {/* MOBILE MENU DRAWER */}
+      <div className={`fixed inset-y-0 right-0 w-72 bg-white dark:bg-slate-900 z-50 transform transition-transform duration-300 lg:hidden flex flex-col shadow-2xl ${isMobileMenuOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+        <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
+          <h2 className="text-xl font-bold text-primary dark:text-white">Menu</h2>
+          <button onClick={() => setIsMobileMenuOpen(false)} className="p-2 bg-slate-100 dark:bg-slate-800 rounded-xl text-secondary">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+          </button>
+        </div>
+        
+        <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
+          {filteredItems.map(item => (
+            <button
+              key={item.id}
+              onClick={() => handleTabClick(item.id)}
+              className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl transition-all ${
+                activeTab === item.id 
+                  ? 'bg-accent text-primary font-bold shadow-lg shadow-accent/20' 
+                  : 'bg-slate-50 dark:bg-slate-800 text-secondary hover:bg-slate-100 dark:hover:bg-slate-700'
+              }`}
+            >
+              <item.icon className="w-5 h-5" strokeWidth={2} />
+              <span className="text-sm">{item.label}</span>
+            </button>
+          ))}
+        </nav>
+
+        <div className="p-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-xl bg-white dark:bg-slate-700 flex items-center justify-center text-primary dark:text-white font-bold text-lg shadow-sm">
+              {user.fullName.charAt(0)}
+            </div>
+            <div>
+              <p className="text-sm font-bold text-primary dark:text-white">{user.fullName}</p>
+              <p className="text-[10px] text-secondary font-bold uppercase">{user.role}</p>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <button onClick={toggleTheme} className="flex-1 py-3 bg-white dark:bg-slate-700 rounded-xl text-secondary flex items-center justify-center border border-slate-200 dark:border-slate-600">
+              {theme === 'light' ? '🌙' : '☀️'}
+            </button>
+            <button onClick={onLogout} className="flex-1 py-3 bg-rose-50 dark:bg-rose-900/20 text-rose-500 rounded-xl font-bold text-xs uppercase tracking-widest border border-rose-100 dark:border-rose-800">
+              Chiqish
             </button>
           </div>
         </div>

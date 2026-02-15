@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { User, UserRole } from './types';
-import Sidebar from './components/Sidebar';
+import Sidebar from './components/Sidebar'; // Bu endi Header vazifasini bajaradi
 import KPIView from './components/KPIView';
 import FeedbackSystem from './components/FeedbackSystem';
 import AdminPortal from './components/AdminPortal';
@@ -149,7 +149,6 @@ const App: React.FC = () => {
   if (!currentUser) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-4 relative overflow-hidden">
-        {/* Soft Background Blob */}
         <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-accent/20 rounded-full blur-[150px]"></div>
         
         <div className="w-full max-w-sm bg-surface rounded-4xl shadow-soft p-10 relative z-10 border border-white/50">
@@ -204,7 +203,8 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className="flex min-h-screen bg-background text-primary font-sans">
+    <div className="min-h-screen bg-background text-primary font-sans flex flex-col">
+      {/* HEADER (Oldingi Sidebar) */}
       <Sidebar 
         user={currentUser} 
         activeTab={activeTab} 
@@ -213,36 +213,36 @@ const App: React.FC = () => {
         theme={theme}
         toggleTheme={toggleTheme}
       />
-      <main className="flex-1 p-6 lg:p-10 overflow-y-auto max-h-screen">
-        <div className="max-w-[1600px] mx-auto">
-          {activeTab === 'checklist' && <AdminChecklist setActiveTab={setActiveTab} />}
+      
+      {/* MAIN CONTENT (Full Width) */}
+      <main className="flex-1 p-6 lg:p-10 w-full max-w-[1920px] mx-auto">
+        {activeTab === 'checklist' && <AdminChecklist setActiveTab={setActiveTab} />}
 
-          {activeTab === 'kpi' && <KPIView user={currentUser} />}
-          {activeTab === 'courier_reports' && <CourierReports user={currentUser} />}
-          
-          {activeTab === 'admin_kpi' && (
-            <AdminKPIEntry 
-              users={users} 
-              onAddUser={handleAddUser}
-            />
-          )}
-          {activeTab === 'kpi_reports' && (
-            <AdminKPIReports users={users} />
-          )}
+        {activeTab === 'kpi' && <KPIView user={currentUser} />}
+        {activeTab === 'courier_reports' && <CourierReports user={currentUser} />}
+        
+        {activeTab === 'admin_kpi' && (
+          <AdminKPIEntry 
+            users={users} 
+            onAddUser={handleAddUser}
+          />
+        )}
+        {activeTab === 'kpi_reports' && (
+          <AdminKPIReports users={users} />
+        )}
 
-          {activeTab === 'master_data' && <MasterDataView />}
-          {activeTab === 'rating' && <RatingView />}
-          {activeTab === 'feedback' && <FeedbackSystem user={currentUser} />}
-          {activeTab === 'users' && (
-            <AdminPortal 
-              users={users} 
-              onAddUser={handleAddUser} 
-              onUpdateUsers={handleUpdateUsers}
-            />
-          )}
-          {activeTab === 'payouts' && <CashierPortal />}
-          {activeTab === 'scripts' && <ScriptsPortal user={currentUser} />}
-        </div>
+        {activeTab === 'master_data' && <MasterDataView />}
+        {activeTab === 'rating' && <RatingView />}
+        {activeTab === 'feedback' && <FeedbackSystem user={currentUser} />}
+        {activeTab === 'users' && (
+          <AdminPortal 
+            users={users} 
+            onAddUser={handleAddUser} 
+            onUpdateUsers={handleUpdateUsers}
+          />
+        )}
+        {activeTab === 'payouts' && <CashierPortal />}
+        {activeTab === 'scripts' && <ScriptsPortal user={currentUser} />}
       </main>
     </div>
   );
