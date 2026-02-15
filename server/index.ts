@@ -755,6 +755,7 @@ app.get('/api/kpi/history/:userId', async (req, res) => {
   }
 });
 
+// YANGI: isConfirmed ni Payment orqali tekshirish
 app.get('/api/kpi/report/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
@@ -781,6 +782,15 @@ app.get('/api/kpi/report/:userId', async (req, res) => {
 
     const dailyKPIs = await prisma.dailyKPI.findMany({ where: { userId, date: { gte: startDate, lte: endDate } } });
     
+    // Payment borligini tekshirish (isConfirmed uchun)
+    let isConfirmed = false;
+    if (period === 'weekly' && week) {
+      const payment = await prisma.payment.findFirst({
+        where: { userId, period: String(week), frequency: 'WEEKLY' }
+      });
+      if (payment) isConfirmed = true;
+    }
+
     let orderFilter: any = {
       createdAt: { gte: startDate, lte: endDate }, 
       status: 'DELIVERED',
@@ -806,7 +816,6 @@ app.get('/api/kpi/report/:userId', async (req, res) => {
       let speedBonusCount = 0;
       let specialBonusCount = 0; 
       let manualBonus = 0; 
-      let isConfirmed = false;
       
       const priceStats: Record<string, number> = {};
 
@@ -833,7 +842,6 @@ app.get('/api/kpi/report/:userId', async (req, res) => {
 
       dailyKPIs.forEach(k => {
         manualBonus += Number(k.bonusAmount);
-        if (k.isConfirmed) isConfirmed = true;
       });
       
       totalEarnings += manualBonus;
@@ -854,7 +862,7 @@ app.get('/api/kpi/report/:userId', async (req, res) => {
           specialBonusCount,
           manualBonus,
           avgSpeedMinutes: Math.round(avgSpeedMinutes),
-          isConfirmed,
+          isConfirmed, // <--- Payment dan olingan
           priceStats 
         },
         finalScore: 0 
