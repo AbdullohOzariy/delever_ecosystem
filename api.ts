@@ -151,6 +151,25 @@ export const api = {
     return res.json();
   },
 
+  cancelPayment: async (id: string) => {
+    const res = await fetch(`${API_URL}/payments/${id}/cancel`, {
+      method: 'POST',
+    });
+    return res.json();
+  },
+
+  resetAllPayments: async () => {
+    const res = await fetch(`${API_URL}/payments/reset-all`, {
+      method: 'POST',
+    });
+    return res.json();
+  },
+
+  getPendingFeedback: async (userId: string) => {
+    const res = await fetch(`${API_URL}/payments/pending-feedback/${userId}`);
+    return res.json();
+  },
+
   // Checklist
   getAdminChecklist: async () => {
     const res = await fetch(`${API_URL}/admin/checklist`);

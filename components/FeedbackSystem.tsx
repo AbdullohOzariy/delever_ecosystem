@@ -12,6 +12,7 @@ const FeedbackSystem: React.FC<FeedbackSystemProps> = ({ user }) => {
   const [loading, setLoading] = useState(true);
   const [ratings, setRatings] = useState<Record<string, { score: number, comment: string }>>({});
   const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' | 'info' } | null>(null);
+  const [pendingWeeks, setPendingWeeks] = useState<string[]>([]);
   
   const getCurrentWeek = () => {
     const date = new Date();
@@ -26,7 +27,18 @@ const FeedbackSystem: React.FC<FeedbackSystemProps> = ({ user }) => {
 
   useEffect(() => {
     loadData();
+    loadPendingFeedback();
   }, [week]);
+
+  const loadPendingFeedback = async () => {
+    try {
+      const payments = await api.getPendingFeedback(user.id);
+      const weeks = payments.map((p: any) => p.period);
+      setPendingWeeks(weeks);
+    } catch (error) {
+      console.error("Kutilayotgan baholashlarni yuklashda xatolik");
+    }
+  };
 
   const loadData = async () => {
     setLoading(true);
@@ -84,6 +96,7 @@ const FeedbackSystem: React.FC<FeedbackSystemProps> = ({ user }) => {
       });
       
       setToast({ message: "Baho saqlandi!", type: 'success' });
+      loadPendingFeedback(); // Yangilash
     } catch (error) {
       setToast({ message: "Xatolik yuz berdi", type: 'error' });
     }
@@ -100,6 +113,27 @@ const FeedbackSystem: React.FC<FeedbackSystemProps> = ({ user }) => {
   return (
     <div className="space-y-8 animate-in fade-in duration-500 relative pb-20">
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+
+      {/* Pending Feedback Alert */}
+      {pendingWeeks.length > 0 && (
+        <div className="bg-amber-50 border border-amber-200 p-4 rounded-2xl flex items-start gap-3 animate-pulse">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-amber-600 mt-0.5"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
+          <div>
+            <h4 className="font-bold text-amber-800 text-sm">Diqqat! Quyidagi haftalar uchun baholash qarz:</h4>
+            <div className="flex flex-wrap gap-2 mt-2">
+              {pendingWeeks.map(w => (
+                <button 
+                  key={w}
+                  onClick={() => setWeek(w)}
+                  className="px-3 py-1 bg-white border border-amber-300 rounded-lg text-xs font-bold text-amber-700 hover:bg-amber-100 transition-colors"
+                >
+                  {w}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       <header className="bg-surface p-8 rounded-4xl shadow-soft border border-white/50 flex flex-col md:flex-row justify-between items-center gap-4">
         <div>
