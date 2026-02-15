@@ -114,8 +114,8 @@ const FeedbackSystem: React.FC<FeedbackSystemProps> = ({ user }) => {
     <div className="space-y-8 animate-in fade-in duration-500 relative pb-20">
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
-      {/* Pending Feedback Alert */}
-      {pendingWeeks.length > 0 && (
+      {/* Notification Area */}
+      {pendingWeeks.length > 0 ? (
         <div className="bg-amber-50 border border-amber-200 p-4 rounded-2xl flex items-start gap-3 animate-pulse">
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-amber-600 mt-0.5"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
           <div>
@@ -132,6 +132,11 @@ const FeedbackSystem: React.FC<FeedbackSystemProps> = ({ user }) => {
               ))}
             </div>
           </div>
+        </div>
+      ) : (
+        <div className="bg-emerald-50 border border-emerald-200 p-4 rounded-2xl flex items-center gap-3">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-emerald-600"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          <h4 className="font-bold text-emerald-800 text-sm">Barcha baholashlar yakunlandi. Daromadingizni olishingiz mumkin.</h4>
         </div>
       )}
 
