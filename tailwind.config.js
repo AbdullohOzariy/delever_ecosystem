@@ -2,11 +2,12 @@
 export default {
   content: [
     "./index.html",
-    "./src/**/*.{js,ts,jsx,tsx}",
+    "./App.tsx",
+    "./main.tsx",
     "./components/**/*.{js,ts,jsx,tsx}",
-    "./App.tsx"
+    "./src/**/*.{js,ts,jsx,tsx}" // Agar src bo'lsa
   ],
-  darkMode: 'class', // <--- MUHIM: Dark mode klass orqali ishlaydi
+  darkMode: 'class',
   theme: {
     extend: {},
   },
