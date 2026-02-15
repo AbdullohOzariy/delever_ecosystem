@@ -13,40 +13,33 @@ const FeedbackSystem: React.FC<FeedbackSystemProps> = ({ user }) => {
   const [ratings, setRatings] = useState<Record<string, { score: number, comment: string }>>({});
   const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' | 'info' } | null>(null);
   const [pendingWeeks, setPendingWeeks] = useState<string[]>([]);
-  
-  const getCurrentWeek = () => {
-    const date = new Date();
-    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-    const dayNum = d.getUTCDay() || 7;
-    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
-    const yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
-    const weekNo = Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1)/7);
-    return `${d.getUTCFullYear()}-W${weekNo.toString().padStart(2, '0')}`;
-  };
-  const [week, setWeek] = useState(getCurrentWeek());
+  const [selectedWeek, setSelectedWeek] = useState<string>('');
 
   useEffect(() => {
-    loadData();
     loadPendingFeedback();
-  }, [week]);
+  }, []);
+
+  useEffect(() => {
+    if (selectedWeek) {
+      loadData();
+    }
+  }, [selectedWeek]);
 
   const loadPendingFeedback = async () => {
     try {
       const payments = await api.getPendingFeedback(user.id);
       const weeks = payments.map((p: any) => {
-        // Agar sana bo'lsa (2026-02-02), uni haftaga o'giramiz
         if (p.period.includes('-W')) return p.period;
-
-        const date = new Date(p.period);
-        const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-        const dayNum = d.getUTCDay() || 7;
-        d.setUTCDate(d.getUTCDate() + 4 - dayNum);
-        const yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
-        const weekNo = Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1)/7);
-        return `${d.getUTCFullYear()}-W${weekNo.toString().padStart(2, '0')}`;
+        // Sanani haftaga o'girish (agar kerak bo'lsa)
+        return p.period; 
       });
-      // Unikal haftalarni olish
-      setPendingWeeks([...new Set(weeks)] as string[]);
+      const uniqueWeeks = [...new Set(weeks)] as string[];
+      setPendingWeeks(uniqueWeeks);
+      
+      // Agar qarz bo'lsa, birinchisini avtomatik tanlash
+      if (uniqueWeeks.length > 0 && !selectedWeek) {
+        setSelectedWeek(uniqueWeeks[0]);
+      }
     } catch (error) {
       console.error("Kutilayotgan baholashlarni yuklashda xatolik");
     }
@@ -63,7 +56,7 @@ const FeedbackSystem: React.FC<FeedbackSystemProps> = ({ user }) => {
       }
       setTargets(data);
 
-      const existingRatings = await api.getRatingsForCourierAndWeek(user.id, week);
+      const existingRatings = await api.getRatingsForCourierAndWeek(user.id, selectedWeek);
       const ratingsMap: Record<string, { score: number, comment: string }> = {};
       existingRatings.forEach((r: any) => {
         ratingsMap[r.toUserId] = { score: r.score, comment: r.comment || '' };
@@ -104,7 +97,7 @@ const FeedbackSystem: React.FC<FeedbackSystemProps> = ({ user }) => {
         toUserId: targetId,
         score: rating.score,
         comment: rating.comment,
-        week: week
+        week: selectedWeek
       });
       
       setToast({ message: "Baho saqlandi!", type: 'success' });
@@ -114,64 +107,65 @@ const FeedbackSystem: React.FC<FeedbackSystemProps> = ({ user }) => {
     }
   };
 
-  if (loading) return <div className="p-10 text-center text-secondary font-bold">Yuklanmoqda...</div>;
+  const targetLabel = user.role === UserRole.COURIER ? "Operatorlar" : "Kuryerlar";
+
+  if (pendingWeeks.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[60vh] animate-in fade-in duration-500">
+        <div className="w-24 h-24 bg-emerald-50 rounded-full flex items-center justify-center mb-6 border border-emerald-100 shadow-soft">
+          <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-emerald-500"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        </div>
+        <h2 className="text-3xl font-black text-primary text-center">Hammasi joyida!</h2>
+        <p className="text-secondary mt-2 text-center max-w-md font-medium">
+          Sizda baholash uchun qarzdorlik yo'q. Barcha to'lovlar uchun baholashlar yakunlangan.
+        </p>
+      </div>
+    );
+  }
+
+  if (loading && !selectedWeek) return <div className="p-10 text-center text-secondary font-bold">Yuklanmoqda...</div>;
 
   const ratedCount = Object.keys(ratings).length;
   const totalTargets = targets.length;
   const progress = totalTargets > 0 ? Math.round((ratedCount / totalTargets) * 100) : 0;
 
-  const targetLabel = user.role === UserRole.COURIER ? "Operatorlar" : "Kuryerlar";
-
   return (
     <div className="space-y-8 animate-in fade-in duration-500 relative pb-20">
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
-      {/* Notification Area */}
-      {pendingWeeks.length > 0 ? (
-        <div className="bg-amber-50 border border-amber-200 p-4 rounded-2xl flex items-start gap-3 animate-pulse">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-amber-600 mt-0.5"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
-          <div>
-            <h4 className="font-bold text-amber-800 text-sm">Diqqat! Quyidagi haftalar uchun baholash qarz:</h4>
-            <div className="flex flex-wrap gap-2 mt-2">
-              {pendingWeeks.map(w => (
-                <button 
-                  key={w}
-                  onClick={() => setWeek(w)}
-                  className="px-3 py-1 bg-white border border-amber-300 rounded-lg text-xs font-bold text-amber-700 hover:bg-amber-100 transition-colors"
-                >
-                  {w}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      ) : (
-        <div className="bg-emerald-50 border border-emerald-200 p-4 rounded-2xl flex items-center gap-3">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-emerald-600"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-          <h4 className="font-bold text-emerald-800 text-sm">Barcha baholashlar yakunlandi. Daromadingizni olishingiz mumkin.</h4>
-        </div>
-      )}
-
-      <header className="bg-surface p-8 rounded-4xl shadow-soft border border-white/50 flex flex-col md:flex-row justify-between items-center gap-4">
+      <header className="bg-surface p-8 rounded-4xl shadow-soft border border-white/50 flex flex-col md:flex-row justify-between items-start gap-6">
         <div>
           <h2 className="text-3xl font-black text-primary tracking-tight">{targetLabel}ni Baholash</h2>
           <p className="text-secondary font-medium text-xs uppercase tracking-widest mt-1">
-            Haftalik maosh olish uchun barcha {targetLabel.toLowerCase()}ni baholang
+            Quyidagi haftalar uchun baholashni yakunlang:
           </p>
+          
+          <div className="flex flex-wrap gap-2 mt-4">
+            {pendingWeeks.map(w => (
+              <button 
+                key={w}
+                onClick={() => setSelectedWeek(w)}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all border ${
+                  selectedWeek === w 
+                    ? 'bg-accent text-primary border-accent shadow-md scale-105' 
+                    : 'bg-background text-secondary border-secondary/10 hover:bg-white'
+                }`}
+              >
+                {w}
+              </button>
+            ))}
+          </div>
         </div>
         
-        <div className="flex items-center gap-4">
-          <input 
-            type="week" 
-            value={week}
-            onChange={(e) => setWeek(e.target.value)}
-            className="bg-background border-none rounded-2xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-accent/50 text-primary transition-all shadow-inner"
-          />
+        <div className="flex items-center gap-4 bg-background p-4 rounded-3xl border border-secondary/5">
           <div className="text-right">
-            <p className="text-xs font-black text-secondary uppercase tracking-widest">Holat</p>
-            <p className={`text-lg font-black ${progress === 100 ? 'text-emerald-600' : 'text-blue-600'}`}>
+            <p className="text-[10px] font-black text-secondary uppercase tracking-widest">Jarayon</p>
+            <p className={`text-2xl font-black ${progress === 100 ? 'text-emerald-600' : 'text-blue-600'}`}>
               {ratedCount} / {totalTargets}
             </p>
+          </div>
+          <div className="w-12 h-12 rounded-full border-4 border-white shadow-sm flex items-center justify-center text-xs font-bold bg-surface">
+            {progress}%
           </div>
         </div>
       </header>
@@ -244,16 +238,6 @@ const FeedbackSystem: React.FC<FeedbackSystemProps> = ({ user }) => {
             </div>
           </div>
         ))}
-        
-        {targets.length === 0 && (
-          <div className="col-span-full py-20 text-center">
-            <div className="w-20 h-20 bg-background rounded-full flex items-center justify-center mx-auto mb-6 border border-secondary/10">
-              <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-secondary"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
-            </div>
-            <h3 className="text-2xl font-black text-primary">Topilmadi</h3>
-            <p className="text-secondary mt-2 font-medium">{targetLabel} ro'yxati bo'sh.</p>
-          </div>
-        )}
       </div>
     </div>
   );
