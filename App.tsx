@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { User, UserRole } from './types';
-import Sidebar from './components/Sidebar';
+import Sidebar from './components/Sidebar'; // Bu endi Header vazifasini bajaradi
 import KPIView from './components/KPIView';
 import FeedbackSystem from './components/FeedbackSystem';
 import AdminPortal from './components/AdminPortal';
@@ -16,7 +16,7 @@ import { api } from './api';
 
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [activeTab, setActiveTab] = useState<string>(''); // Default bo'sh
+  const [activeTab, setActiveTab] = useState<string>(''); 
   const [authLoading, setAuthLoading] = useState(true);
   const [users, setUsers] = useState<User[]>([]);
   const [theme, setTheme] = useState<'light' | 'dark'>('light'); 
@@ -33,6 +33,12 @@ const App: React.FC = () => {
       document.documentElement.classList.toggle('dark', savedTheme === 'dark');
     }
   }, []);
+
+  // Tab o'zgarganda saqlash
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+    localStorage.setItem('activeTab', tab);
+  };
 
   const toggleTheme = () => {
     const newTheme = theme === 'light' ? 'dark' : 'light';
@@ -66,22 +72,31 @@ const App: React.FC = () => {
     if (token && savedUser) {
       const user = JSON.parse(savedUser);
       setCurrentUser(user);
-      setInitialTab(user); // Tabni sozlash
+      
+      // Saqlangan tabni yuklash
+      const savedTab = localStorage.getItem('activeTab');
+      if (savedTab) {
+        setActiveTab(savedTab);
+      } else {
+        setInitialTab(user);
+      }
+
       if (user.role === UserRole.ADMIN) loadUsers();
     }
     setAuthLoading(false);
   };
 
   const setInitialTab = (user: User) => {
+    let tab = 'kpi';
     if (user.role === UserRole.ADMIN) {
-      setActiveTab('checklist');
+      tab = 'checklist';
     } else if (user.role === UserRole.CASHIER) {
-      setActiveTab('payouts');
+      tab = 'payouts';
     } else if (user.role === UserRole.COURIER) {
-      setActiveTab('courier_reports');
-    } else {
-      setActiveTab('kpi'); // Operator
+      tab = 'courier_reports';
     }
+    setActiveTab(tab);
+    localStorage.setItem('activeTab', tab);
   };
 
   const handleAuthSuccess = (response: any) => {
@@ -89,7 +104,9 @@ const App: React.FC = () => {
     localStorage.setItem('token', token);
     localStorage.setItem('delever_user', JSON.stringify(user));
     setCurrentUser(user);
-    setInitialTab(user); // Tabni sozlash
+    
+    // Login qilganda default tabga o'tish (yoki saqlanganiga)
+    setInitialTab(user);
     
     if (user.role === UserRole.ADMIN) {
       loadUsers();
@@ -131,6 +148,7 @@ const App: React.FC = () => {
     setCurrentUser(null);
     localStorage.removeItem('delever_user');
     localStorage.removeItem('token');
+    localStorage.removeItem('activeTab'); // Logoutda tabni tozalash
     setActiveTab('');
   };
 
@@ -215,11 +233,13 @@ const App: React.FC = () => {
       <Sidebar 
         user={currentUser} 
         activeTab={activeTab} 
-        setActiveTab={setActiveTab} 
+        setActiveTab={handleTabChange} // <--- O'zgartirildi
         onLogout={handleLogout} 
+        theme={theme}
+        toggleTheme={toggleTheme}
       />
       <main className="flex-1 p-6 lg:p-10 w-full max-w-[1920px] mx-auto">
-        {activeTab === 'checklist' && <AdminChecklist setActiveTab={setActiveTab} />}
+        {activeTab === 'checklist' && <AdminChecklist setActiveTab={handleTabChange} />}
 
         {activeTab === 'kpi' && <KPIView user={currentUser} />}
         {activeTab === 'courier_reports' && <CourierReports user={currentUser} />}
