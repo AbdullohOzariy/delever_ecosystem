@@ -24,7 +24,7 @@ const MasterDataView: React.FC = () => {
   const [search, setSearch] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' | 'info' } | null>(null);
-  const [showHelp, setShowHelp] = useState(false); // YANGI: Yordam oynasi
+  const [showHelp, setShowHelp] = useState(false); 
 
   // FILTERS
   const [showFilters, setShowFilters] = useState(false);
@@ -198,10 +198,10 @@ const MasterDataView: React.FC = () => {
     <div className="space-y-8 animate-in fade-in duration-500 pb-20 px-4 md:px-0 relative">
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
-      <header className="flex flex-col xl:flex-row xl:items-center justify-between gap-8 bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm">
+      <header className="flex flex-col xl:flex-row xl:items-center justify-between gap-8 bg-white dark:bg-slate-900 p-8 rounded-2xl border-2 border-slate-900 dark:border-slate-700 shadow-[4px_4px_0px_0px_rgba(15,23,42,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,0.1)] transition-colors duration-300">
         <div>
-          <h2 className="text-3xl font-black text-slate-900 tracking-tight">Master Baza</h2>
-          <p className="text-slate-500 font-medium mt-2 flex items-center gap-2">
+          <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight uppercase">Master Baza</h2>
+          <p className="text-slate-500 dark:text-slate-400 font-bold text-xs uppercase tracking-widest mt-1 flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
             {filteredOrders.length.toLocaleString()} ta buyurtma (Jami: {orders.length})
           </p>
@@ -209,7 +209,7 @@ const MasterDataView: React.FC = () => {
         <div className="flex flex-wrap gap-3">
           <button 
             onClick={() => setShowHelp(true)}
-            className="px-4 py-3 bg-slate-100 text-slate-500 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-slate-200 transition-all flex items-center justify-center gap-2"
+            className="px-4 py-3 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-lg text-xs font-black uppercase tracking-widest hover:bg-slate-200 dark:hover:bg-slate-700 transition-all flex items-center justify-center gap-2 border-2 border-transparent hover:border-slate-300 dark:hover:border-slate-600"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>
             Yo'riqnoma
@@ -217,7 +217,7 @@ const MasterDataView: React.FC = () => {
 
           <button 
             onClick={() => setShowFilters(!showFilters)}
-            className={`px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 border ${showFilters ? 'bg-slate-900 text-white border-slate-900 shadow-lg' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}
+            className={`px-6 py-3 rounded-lg text-xs font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 border-2 ${showFilters ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 border-slate-900 dark:border-white shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)]' : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
             Filtr
@@ -236,14 +236,14 @@ const MasterDataView: React.FC = () => {
           <button 
             onClick={() => fileInputRef.current?.click()}
             disabled={isParsing}
-            className="px-6 py-3 bg-blue-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-blue-700 transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20"
+            className="px-6 py-3 bg-blue-600 text-white rounded-lg text-xs font-black uppercase tracking-widest hover:bg-blue-700 transition-all flex items-center justify-center gap-2 shadow-[4px_4px_0px_0px_rgba(37,99,235,0.2)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none border-2 border-blue-600"
           >
             {isParsing ? 'Tekshirilmoqda...' : 'CSV Yuklash'}
           </button>
           
           <button 
             onClick={handleDeleteAll}
-            className="px-6 py-3 bg-rose-50 text-rose-600 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-rose-100 transition-all flex items-center justify-center gap-2 border border-rose-100"
+            className="px-6 py-3 bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 rounded-lg text-xs font-black uppercase tracking-widest hover:bg-rose-100 dark:hover:bg-rose-900/40 transition-all flex items-center justify-center gap-2 border-2 border-rose-100 dark:border-rose-800"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
             Tozalash
@@ -254,26 +254,26 @@ const MasterDataView: React.FC = () => {
       {/* HELP MODAL */}
       {showHelp && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white w-full max-w-2xl rounded-[2.5rem] p-8 shadow-2xl animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-2xl rounded-2xl p-8 shadow-2xl border-2 border-slate-900 dark:border-slate-700 animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-2xl font-black text-slate-900">CSV Yuklash Tartibi</h3>
-              <button onClick={() => setShowHelp(false)} className="p-2 bg-slate-100 rounded-full hover:bg-slate-200 transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" x2="6" y1="6" y2="18"/><line x1="6" x2="18" y1="6" y2="18"/></svg>
+              <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight">CSV Yuklash Tartibi</h3>
+              <button onClick={() => setShowHelp(false)} className="p-2 bg-slate-100 dark:bg-slate-800 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="dark:text-white"><line x1="18" x2="6" y1="6" y2="18"/><line x1="6" x2="18" y1="6" y2="18"/></svg>
               </button>
             </div>
 
-            <div className="space-y-6 text-sm text-slate-600">
+            <div className="space-y-6 text-sm text-slate-600 dark:text-slate-400 font-medium">
               <p>
                 Tizimga ma'lumotlarni yuklash uchun <b>.csv</b> formatidagi fayldan foydalaning. 
                 Faylning birinchi qatori (sarlavha) quyidagicha bo'lishi <b>SHART</b>:
               </p>
 
-              <div className="bg-slate-100 p-4 rounded-xl font-mono text-xs break-all border border-slate-200">
+              <div className="bg-slate-100 dark:bg-slate-800 p-4 rounded-xl font-mono text-xs break-all border-2 border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-300">
                 {EXPECTED_HEADER}
               </div>
 
               <div>
-                <h4 className="font-bold text-slate-900 mb-2">Ustunlar tavsifi:</h4>
+                <h4 className="font-bold text-slate-900 dark:text-white mb-2 uppercase tracking-widest text-xs">Ustunlar tavsifi:</h4>
                 <ul className="list-disc pl-5 space-y-1">
                   <li><b>№</b>: Tartib raqami (ixtiyoriy, lekin bo'lishi kerak)</li>
                   <li><b>Ид.заказа</b>: Buyurtma ID raqami (unikal bo'lishi kerak)</li>
@@ -290,9 +290,9 @@ const MasterDataView: React.FC = () => {
                 </ul>
               </div>
 
-              <div className="bg-amber-50 p-4 rounded-xl border border-amber-100 text-amber-800">
-                <p className="font-bold mb-1">⚠️ Muhim eslatmalar:</p>
-                <ul className="list-disc pl-5 space-y-1 text-xs">
+              <div className="bg-amber-50 dark:bg-amber-900/20 p-4 rounded-xl border-2 border-amber-100 dark:border-amber-800 text-amber-800 dark:text-amber-400">
+                <p className="font-black mb-1 uppercase tracking-widest text-xs">⚠️ Muhim eslatmalar:</p>
+                <ul className="list-disc pl-5 space-y-1 text-xs font-bold">
                   <li>Fayl kodirovkasi <b>UTF-8</b> bo'lishi kerak.</li>
                   <li>Sana formati <b>2024-03-21 14:30:00</b> kabi bo'lishi kerak.</li>
                   <li>Narx ustunlarida so'm belgisi yoki bo'sh joy bo'lmasligi kerak (faqat raqam).</li>
@@ -303,7 +303,7 @@ const MasterDataView: React.FC = () => {
             
             <button 
               onClick={() => setShowHelp(false)}
-              className="w-full bg-slate-900 text-white py-4 rounded-2xl font-black uppercase tracking-widest hover:bg-blue-600 transition-all shadow-xl mt-6"
+              className="w-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 py-4 rounded-xl font-black uppercase tracking-widest hover:bg-blue-600 dark:hover:bg-slate-200 transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none mt-6 border-2 border-slate-900 dark:border-white"
             >
               Tushunarli
             </button>
@@ -313,37 +313,37 @@ const MasterDataView: React.FC = () => {
 
       {/* FILTERS PANEL */}
       {showFilters && (
-        <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-xl animate-in slide-in-from-top-4 duration-300">
+        <div className="bg-white dark:bg-slate-900 p-8 rounded-2xl border-2 border-slate-900 dark:border-slate-700 shadow-xl animate-in slide-in-from-top-4 duration-300">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             
             {/* 1-Qator: Qidiruv va Sana */}
             <div className="space-y-6">
               <div className="space-y-3">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Qidiruv</label>
+                <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Qidiruv</label>
                 <div className="relative">
                   <input 
                     type="text" 
                     placeholder="ID, Operator, Kuryer..." 
-                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-sm font-bold outline-none focus:ring-4 focus:ring-blue-100 transition-all pl-12"
+                    className="w-full bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-lg px-5 py-3 text-sm font-bold outline-none focus:border-slate-900 dark:focus:border-white transition-all pl-12 text-slate-900 dark:text-white"
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                   />
-                  <svg className="absolute left-4 top-4 text-slate-400" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/></svg>
+                  <svg className="absolute left-4 top-3.5 text-slate-400" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/></svg>
                 </div>
               </div>
 
               <div className="space-y-3">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Sana Oralig'i</label>
+                <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Sana Oralig'i</label>
                 <div className="flex gap-3">
                   <input 
                     type="date" 
-                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-4 text-xs font-bold outline-none focus:ring-4 focus:ring-blue-100 transition-all"
+                    className="w-full bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-lg px-4 py-3 text-xs font-bold outline-none focus:border-slate-900 dark:focus:border-white transition-all text-slate-900 dark:text-white"
                     value={dateRange.start}
                     onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })}
                   />
                   <input 
                     type="date" 
-                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-4 text-xs font-bold outline-none focus:ring-4 focus:ring-blue-100 transition-all"
+                    className="w-full bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-lg px-4 py-3 text-xs font-bold outline-none focus:border-slate-900 dark:focus:border-white transition-all text-slate-900 dark:text-white"
                     value={dateRange.end}
                     onChange={(e) => setDateRange({ ...dateRange, end: e.target.value })}
                   />
@@ -373,19 +373,19 @@ const MasterDataView: React.FC = () => {
               </div>
 
               <div className="space-y-3">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Summa (UZS)</label>
+                <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Summa (UZS)</label>
                 <div className="flex gap-3">
                   <input 
                     type="number" 
                     placeholder="Min" 
-                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-4 text-xs font-bold outline-none focus:ring-4 focus:ring-blue-100 transition-all"
+                    className="w-full bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-lg px-4 py-3 text-xs font-bold outline-none focus:border-slate-900 dark:focus:border-white transition-all text-slate-900 dark:text-white"
                     value={priceRange.min}
                     onChange={(e) => setPriceRange({ ...priceRange, min: e.target.value })}
                   />
                   <input 
                     type="number" 
                     placeholder="Max" 
-                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-4 text-xs font-bold outline-none focus:ring-4 focus:ring-blue-100 transition-all"
+                    className="w-full bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-lg px-4 py-3 text-xs font-bold outline-none focus:border-slate-900 dark:focus:border-white transition-all text-slate-900 dark:text-white"
                     value={priceRange.max}
                     onChange={(e) => setPriceRange({ ...priceRange, max: e.target.value })}
                   />
@@ -397,9 +397,9 @@ const MasterDataView: React.FC = () => {
         </div>
       )}
 
-      <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden overflow-x-auto">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border-2 border-slate-900 dark:border-slate-700 shadow-[4px_4px_0px_0px_rgba(15,23,42,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,0.1)] overflow-hidden overflow-x-auto">
         <table className="w-full text-left min-w-[1000px]">
-          <thead className="bg-slate-50 text-slate-400 border-b border-slate-100">
+          <thead className="bg-slate-50 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border-b-2 border-slate-900 dark:border-slate-700">
             <tr>
               <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest">ID</th>
               <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest">Operator / Kuryer</th>
@@ -410,50 +410,52 @@ const MasterDataView: React.FC = () => {
               <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-right">Sana</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-50">
+          <tbody className="divide-y-2 divide-slate-100 dark:divide-slate-800">
             {filteredOrders.map((ord) => (
-              <tr key={ord.id} className="hover:bg-slate-50 transition-colors">
-                <td className="px-8 py-5 font-black text-slate-900">#{ord.id}</td>
+              <tr key={ord.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                <td className="px-8 py-5 font-black text-slate-900 dark:text-white">#{ord.id}</td>
                 <td className="px-6 py-5">
                   <div className="flex flex-col gap-1">
-                    <span className="text-xs font-black text-slate-800">{ord.operator?.fullName || '---'}</span>
-                    <span className="text-[10px] text-slate-400 font-bold uppercase flex items-center gap-1">
+                    <span className="text-xs font-black text-slate-800 dark:text-slate-200">{ord.operator?.fullName || '---'}</span>
+                    <span className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase flex items-center gap-1">
                       <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/></svg>
                       {ord.courier?.fullName || '---'}
                     </span>
                   </div>
                 </td>
                 <td className="px-6 py-5 text-center">
-                  <span className="text-xs font-bold text-slate-600 bg-slate-100 px-2 py-1 rounded-lg">
+                  <span className="text-xs font-bold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-700">
                     {ord.branch || '-'}
                   </span>
                 </td>
                 <td className="px-6 py-5 text-center">
-                  <span className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest ${
-                    ord.deliveryType === 'Самовывоз' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'
+                  <span className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest border-2 ${
+                    ord.deliveryType === 'Самовывоз' 
+                      ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800' 
+                      : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800'
                   }`}>
                     {ord.deliveryType || '-'}
                   </span>
                 </td>
-                <td className="px-6 py-5 text-center font-bold text-slate-600">
+                <td className="px-6 py-5 text-center font-bold text-slate-600 dark:text-slate-400 font-mono">
                   {formatTime(ord.deliveryTimeSeconds)}
                 </td>
                 <td className="px-6 py-5 text-right">
-                  <div className="flex flex-col items-end gap-0.5">
-                    <span className="font-black text-slate-900">{ord.amount.toLocaleString()}</span>
-                    <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">
+                  <div className="flex flex-col items-end gap-1">
+                    <span className="font-black text-slate-900 dark:text-white">{ord.amount.toLocaleString()}</span>
+                    <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700">
                       + {ord.deliveryPrice.toLocaleString()}
                     </span>
                   </div>
                 </td>
-                <td className="px-8 py-5 text-right text-xs font-bold text-slate-500">
+                <td className="px-8 py-5 text-right text-xs font-bold text-slate-500 dark:text-slate-500">
                   {new Date(ord.createdAt).toLocaleDateString()}
                 </td>
               </tr>
             ))}
             {filteredOrders.length === 0 && (
               <tr>
-                <td colSpan={7} className="py-20 text-center text-slate-400 font-bold">
+                <td colSpan={7} className="py-20 text-center text-slate-400 dark:text-slate-600 font-bold">
                   Ma'lumot topilmadi
                 </td>
               </tr>

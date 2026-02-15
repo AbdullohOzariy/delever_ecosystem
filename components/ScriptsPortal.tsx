@@ -27,11 +27,9 @@ const ScriptsPortal: React.FC<ScriptsPortalProps> = ({ user }) => {
     setLoading(true);
     try {
       const data = await api.getScripts();
-      // XAVFSIZLIK: Agar data massiv bo'lmasa, bo'sh massiv ishlatamiz
       if (Array.isArray(data)) {
         setScripts(data);
       } else {
-        console.error("Skriptlar noto'g'ri formatda keldi:", data);
         setScripts([]);
       }
     } catch (error) {
@@ -112,14 +110,14 @@ const ScriptsPortal: React.FC<ScriptsPortalProps> = ({ user }) => {
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
       {/* LEFT SIDEBAR (LIST) */}
-      <div className="w-1/3 bg-white rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col overflow-hidden">
-        <div className="p-6 border-b border-slate-100">
+      <div className="w-1/3 bg-white dark:bg-slate-900 rounded-2xl border-2 border-slate-900 dark:border-slate-700 shadow-[4px_4px_0px_0px_rgba(15,23,42,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,0.1)] flex flex-col overflow-hidden transition-colors duration-300">
+        <div className="p-6 border-b-2 border-slate-900 dark:border-slate-700">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-2xl font-black text-slate-900 tracking-tight">Skriptlar</h2>
+            <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight uppercase">Skriptlar</h2>
             {user.role === UserRole.ADMIN && (
               <button 
                 onClick={openCreate}
-                className="p-2 bg-slate-900 text-white rounded-xl hover:bg-blue-600 transition-colors shadow-lg shadow-slate-900/20"
+                className="p-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-lg hover:bg-blue-600 dark:hover:bg-slate-200 transition-colors shadow-[2px_2px_0px_0px_rgba(0,0,0,0.2)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
               </button>
@@ -131,7 +129,7 @@ const ScriptsPortal: React.FC<ScriptsPortalProps> = ({ user }) => {
               <input 
                 type="text" 
                 placeholder="Qidirish..." 
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 pl-10 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-100"
+                className="w-full bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-lg px-4 py-3 pl-10 text-sm font-bold outline-none focus:border-slate-900 dark:focus:border-white transition-all text-slate-900 dark:text-white"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
@@ -143,8 +141,10 @@ const ScriptsPortal: React.FC<ScriptsPortalProps> = ({ user }) => {
                 <button
                   key={cat}
                   onClick={() => setSelectedCategory(cat as string)}
-                  className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${
-                    selectedCategory === cat ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                  className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all border-2 ${
+                    selectedCategory === cat 
+                      ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 border-slate-900 dark:border-white' 
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-transparent hover:border-slate-300 dark:hover:border-slate-600'
                   }`}
                 >
                   {cat}
@@ -164,23 +164,23 @@ const ScriptsPortal: React.FC<ScriptsPortalProps> = ({ user }) => {
               <div 
                 key={script.id}
                 onClick={() => { setSelectedScript(script); setIsEditing(false); }}
-                className={`p-4 rounded-2xl cursor-pointer transition-all border ${
+                className={`p-4 rounded-xl cursor-pointer transition-all border-2 ${
                   selectedScript?.id === script.id 
-                    ? 'bg-blue-50 border-blue-200 shadow-md' 
-                    : 'bg-white border-slate-100 hover:border-blue-100 hover:shadow-sm'
+                    ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-600 dark:border-blue-400 shadow-[2px_2px_0px_0px_rgba(37,99,235,0.2)]' 
+                    : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-500'
                 }`}
               >
                 <div className="flex justify-between items-start mb-1">
-                  <h4 className={`font-bold text-sm ${selectedScript?.id === script.id ? 'text-blue-700' : 'text-slate-900'}`}>
+                  <h4 className={`font-bold text-sm ${selectedScript?.id === script.id ? 'text-blue-700 dark:text-blue-400' : 'text-slate-900 dark:text-white'}`}>
                     {script.title}
                   </h4>
                   {script.category && (
-                    <span className="text-[9px] font-black uppercase tracking-widest bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded">
+                    <span className="text-[9px] font-black uppercase tracking-widest bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-600">
                       {script.category}
                     </span>
                   )}
                 </div>
-                <p className="text-xs text-slate-500 line-clamp-2 font-medium">
+                <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 font-medium">
                   {script.content}
                 </p>
               </div>
@@ -190,18 +190,18 @@ const ScriptsPortal: React.FC<ScriptsPortalProps> = ({ user }) => {
       </div>
 
       {/* RIGHT SIDE (CONTENT) */}
-      <div className="flex-1 bg-white rounded-[2.5rem] border border-slate-100 shadow-sm p-8 flex flex-col relative overflow-hidden">
+      <div className="flex-1 bg-white dark:bg-slate-900 rounded-2xl border-2 border-slate-900 dark:border-slate-700 shadow-[4px_4px_0px_0px_rgba(15,23,42,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,0.1)] p-8 flex flex-col relative overflow-hidden transition-colors duration-300">
         {isEditing ? (
           <div className="flex flex-col h-full space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
             <div className="flex justify-between items-center">
-              <h3 className="text-2xl font-black text-slate-900">{selectedScript ? 'Tahrirlash' : 'Yangi Skript'}</h3>
-              <button onClick={() => setIsEditing(false)} className="text-slate-400 hover:text-slate-600 font-bold text-sm">Bekor qilish</button>
+              <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight">{selectedScript ? 'Tahrirlash' : 'Yangi Skript'}</h3>
+              <button onClick={() => setIsEditing(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 font-bold text-sm">Bekor qilish</button>
             </div>
             
             <input 
               type="text" 
               placeholder="Sarlavha" 
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-lg font-bold outline-none focus:ring-2 focus:ring-blue-100"
+              className="w-full bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-lg font-bold outline-none focus:border-slate-900 dark:focus:border-white text-slate-900 dark:text-white transition-all"
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
             />
@@ -210,14 +210,14 @@ const ScriptsPortal: React.FC<ScriptsPortalProps> = ({ user }) => {
               <input 
                 type="text" 
                 placeholder="Kategoriya (masalan: Sotuv)" 
-                className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-100"
+                className="flex-1 bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:border-slate-900 dark:focus:border-white text-slate-900 dark:text-white transition-all"
                 value={formData.category}
                 onChange={(e) => setFormData({ ...formData, category: e.target.value })}
               />
               <input 
                 type="text" 
                 placeholder="Teglar (vergul bilan)" 
-                className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-100"
+                className="flex-1 bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:border-slate-900 dark:focus:border-white text-slate-900 dark:text-white transition-all"
                 value={formData.tags}
                 onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
               />
@@ -225,14 +225,14 @@ const ScriptsPortal: React.FC<ScriptsPortalProps> = ({ user }) => {
 
             <textarea 
               placeholder="Skript matni..." 
-              className="flex-1 bg-slate-50 border border-slate-200 rounded-xl p-4 text-base font-medium outline-none focus:ring-2 focus:ring-blue-100 resize-none"
+              className="flex-1 bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-xl p-4 text-base font-medium outline-none focus:border-slate-900 dark:focus:border-white text-slate-900 dark:text-white resize-none transition-all"
               value={formData.content}
               onChange={(e) => setFormData({ ...formData, content: e.target.value })}
             />
 
             <button 
               onClick={handleSave}
-              className="w-full bg-slate-900 text-white py-4 rounded-xl font-black uppercase tracking-widest hover:bg-blue-600 transition-all shadow-xl shadow-slate-900/20"
+              className="w-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 py-4 rounded-xl font-black uppercase tracking-widest hover:bg-blue-600 dark:hover:bg-slate-200 transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none border-2 border-slate-900 dark:border-white"
             >
               Saqlash
             </button>
@@ -241,15 +241,15 @@ const ScriptsPortal: React.FC<ScriptsPortalProps> = ({ user }) => {
           <div className="flex flex-col h-full animate-in fade-in duration-300">
             <div className="flex justify-between items-start mb-6">
               <div>
-                <h2 className="text-3xl font-black text-slate-900 tracking-tight mb-2">{selectedScript.title}</h2>
+                <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight mb-2">{selectedScript.title}</h2>
                 <div className="flex gap-2">
                   {selectedScript.category && (
-                    <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest">
+                    <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border border-blue-200 dark:border-blue-800">
                       {selectedScript.category}
                     </span>
                   )}
                   {selectedScript.tags && selectedScript.tags.map((tag: string) => (
-                    <span key={tag} className="bg-slate-100 text-slate-500 px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest">
+                    <span key={tag} className="bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest border border-slate-200 dark:border-slate-700">
                       #{tag}
                     </span>
                   ))}
@@ -260,13 +260,13 @@ const ScriptsPortal: React.FC<ScriptsPortalProps> = ({ user }) => {
                 <div className="flex gap-2">
                   <button 
                     onClick={() => openEdit(selectedScript)}
-                    className="p-2 bg-slate-100 text-slate-600 rounded-xl hover:bg-blue-100 hover:text-blue-600 transition-colors"
+                    className="p-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-xl hover:bg-blue-100 dark:hover:bg-blue-900/30 hover:text-blue-600 dark:hover:text-blue-400 transition-colors border-2 border-transparent hover:border-blue-200 dark:hover:border-blue-800"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
                   </button>
                   <button 
                     onClick={() => handleDelete(selectedScript.id)}
-                    className="p-2 bg-rose-50 text-rose-600 rounded-xl hover:bg-rose-100 transition-colors"
+                    className="p-2 bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 rounded-xl hover:bg-rose-100 dark:hover:bg-rose-900/40 transition-colors border-2 border-transparent hover:border-rose-200 dark:hover:border-rose-800"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
                   </button>
@@ -275,15 +275,15 @@ const ScriptsPortal: React.FC<ScriptsPortalProps> = ({ user }) => {
             </div>
 
             <div className="flex-1 overflow-y-auto pr-2">
-              <div className="prose prose-slate max-w-none">
-                <p className="text-lg text-slate-700 leading-relaxed whitespace-pre-wrap font-medium">
+              <div className="prose prose-slate dark:prose-invert max-w-none">
+                <p className="text-lg text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-wrap font-medium">
                   {selectedScript.content}
                 </p>
               </div>
             </div>
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center h-full text-slate-300">
+          <div className="flex flex-col items-center justify-center h-full text-slate-300 dark:text-slate-600">
             <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="mb-4"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
             <p className="text-lg font-bold">Skriptni tanlang yoki yangisini yarating</p>
           </div>
