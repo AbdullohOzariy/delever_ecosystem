@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { User, UserRole } from './types';
-import Sidebar from './components/Sidebar'; // Bu endi Header vazifasini bajaradi
+import Sidebar from './components/Sidebar';
 import KPIView from './components/KPIView';
 import FeedbackSystem from './components/FeedbackSystem';
 import AdminPortal from './components/AdminPortal';
@@ -19,27 +19,13 @@ const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>('checklist'); 
   const [authLoading, setAuthLoading] = useState(true);
   const [users, setUsers] = useState<User[]>([]);
-  const [theme, setTheme] = useState<'light' | 'dark'>('light'); 
   
   const [isTelegram, setIsTelegram] = useState(false);
   const [telegramId, setTelegramId] = useState<number | null>(null);
 
   useEffect(() => {
     checkAuth();
-    
-    const savedTheme = localStorage.getItem('theme') as 'light' | 'dark';
-    if (savedTheme) {
-      setTheme(savedTheme);
-      document.documentElement.classList.toggle('dark', savedTheme === 'dark');
-    }
   }, []);
-
-  const toggleTheme = () => {
-    const newTheme = theme === 'light' ? 'dark' : 'light';
-    setTheme(newTheme);
-    localStorage.setItem('theme', newTheme);
-    document.documentElement.classList.toggle('dark', newTheme === 'dark');
-  };
 
   const checkAuth = async () => {
     if (window.Telegram?.WebApp?.initData) {
@@ -204,17 +190,12 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-background text-primary font-sans flex flex-col">
-      {/* HEADER (Oldingi Sidebar) */}
       <Sidebar 
         user={currentUser} 
         activeTab={activeTab} 
         setActiveTab={setActiveTab} 
         onLogout={handleLogout} 
-        theme={theme}
-        toggleTheme={toggleTheme}
       />
-      
-      {/* MAIN CONTENT (Full Width) */}
       <main className="flex-1 p-6 lg:p-10 w-full max-w-[1920px] mx-auto">
         {activeTab === 'checklist' && <AdminChecklist setActiveTab={setActiveTab} />}
 

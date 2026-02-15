@@ -37,19 +37,22 @@ const KPIView: React.FC<KPIViewProps> = ({ user }) => {
   return (
     <div className="space-y-8 animate-in fade-in duration-500 pb-20">
       {/* Header Card */}
-      <div className="flex flex-col md:flex-row justify-between items-center gap-6 bg-surface p-8 rounded-4xl shadow-soft border border-white/50">
+      <div className="flex flex-col md:flex-row justify-between items-center gap-6 bg-surface p-6 rounded-3xl shadow-soft border border-white/50">
         <div>
-          <h2 className="text-3xl font-black text-primary tracking-tight">Mening Natijalarim</h2>
-          <p className="text-secondary font-medium text-sm mt-1">
+          <h2 className="text-2xl font-black text-primary tracking-tight">Mening Natijalarim</h2>
+          <p className="text-secondary font-medium text-xs mt-1 uppercase tracking-widest">
             {new Date(month).toLocaleDateString('uz-UZ', { month: 'long', year: 'numeric' })}
           </p>
         </div>
-        <input 
-          type="month" 
-          value={month}
-          onChange={(e) => setMonth(e.target.value)}
-          className="bg-background border-none rounded-2xl px-5 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-accent/50 text-primary transition-all shadow-inner"
-        />
+        
+        <div className="flex items-center gap-3">
+          <input 
+            type="month" 
+            value={month}
+            onChange={(e) => setMonth(e.target.value)}
+            className="bg-background border-none rounded-xl px-4 py-2.5 text-sm font-bold outline-none focus:ring-2 focus:ring-accent/50 text-primary transition-all shadow-inner cursor-pointer"
+          />
+        </div>
       </div>
 
       {/* Summary Cards */}

@@ -259,11 +259,11 @@ const AdminKPIReports: React.FC<AdminKPIReportsProps> = ({ users }) => {
   };
 
   const getStatusColor = (score: number) => {
-    if (score >= 4.8) return 'bg-purple-100 text-purple-700 border-purple-200';
-    if (score >= 4.5) return 'bg-emerald-100 text-emerald-700 border-emerald-200';
-    if (score >= 4.0) return 'bg-blue-100 text-blue-700 border-blue-200';
-    if (score >= 3.5) return 'bg-amber-100 text-amber-700 border-amber-200';
-    return 'bg-rose-100 text-rose-700 border-rose-200';
+    if (score >= 4.8) return 'text-emerald-600 bg-emerald-50';
+    if (score >= 4.5) return 'text-emerald-600 bg-emerald-50';
+    if (score >= 4.0) return 'text-blue-600 bg-blue-50';
+    if (score >= 3.5) return 'text-amber-600 bg-amber-50';
+    return 'text-rose-600 bg-rose-50';
   };
 
   const formatDisplayDate = () => {
@@ -281,34 +281,41 @@ const AdminKPIReports: React.FC<AdminKPIReportsProps> = ({ users }) => {
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
       {/* Header */}
-      <header className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 bg-surface p-8 rounded-4xl shadow-soft border border-white/50">
+      <header className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 bg-surface p-6 rounded-3xl shadow-soft border border-white/50">
         <div>
-          <h2 className="text-3xl font-black text-primary tracking-tight">KPI Umumiy Hisobot</h2>
+          <h2 className="text-2xl font-black text-primary tracking-tight">KPI Umumiy Hisobot</h2>
           <p className="text-secondary font-medium mt-1 uppercase text-[10px] tracking-widest">
             {activeRole === UserRole.OPERATOR ? 'Oylik Sifat Nazorati' : 'Haftalik Yetkazib Berish Hisoboti'}
           </p>
         </div>
         
-        <div className="flex items-center gap-4">
-          <button 
-            onClick={exportPDF}
-            className="flex items-center gap-2 bg-primary text-white px-5 py-3 rounded-2xl text-xs font-bold hover:bg-secondary transition-all shadow-lg shadow-primary/20 active:scale-95"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
-            PDF Yuklash
-          </button>
+        <div className="flex items-center gap-3">
+          <div className="flex bg-background p-1 rounded-xl border border-secondary/10">
+            <button 
+              onClick={() => setActiveRole(UserRole.OPERATOR)}
+              className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${activeRole === UserRole.OPERATOR ? 'bg-surface text-primary shadow-sm' : 'text-secondary hover:text-primary'}`}
+            >
+              Operatorlar
+            </button>
+            <button 
+              onClick={() => setActiveRole(UserRole.COURIER)}
+              className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${activeRole === UserRole.COURIER ? 'bg-surface text-primary shadow-sm' : 'text-secondary hover:text-primary'}`}
+            >
+              Kuryerlar
+            </button>
+          </div>
 
           <div className="relative" ref={dateRef}>
             <button 
               onClick={() => setIsDateOpen(!isDateOpen)}
-              className="flex items-center gap-3 bg-background border-none rounded-2xl px-5 py-3 text-sm font-bold outline-none hover:bg-white transition-all min-w-[220px] justify-between shadow-inner text-primary"
+              className="flex items-center gap-2 bg-background border-none rounded-xl px-4 py-2.5 text-xs font-bold outline-none hover:bg-white transition-all min-w-[180px] justify-between shadow-inner text-primary uppercase tracking-wide"
             >
-              <span className="capitalize truncate max-w-[180px]">{formatDisplayDate()}</span>
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className={`text-secondary transition-transform ${isDateOpen ? 'rotate-180' : ''}`}><path d="m6 9 6 6 6-6"/></svg>
+              <span className="truncate max-w-[140px]">{formatDisplayDate()}</span>
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`text-secondary transition-transform ${isDateOpen ? 'rotate-180' : ''}`}><path d="m6 9 6 6 6-6"/></svg>
             </button>
 
             {isDateOpen && (
-              <div className="absolute top-full right-0 mt-2 bg-surface border border-white/50 rounded-3xl shadow-xl p-4 z-50 animate-in fade-in zoom-in-95 duration-200 w-[300px]">
+              <div className="absolute top-full right-0 mt-2 bg-surface border border-white/50 rounded-2xl shadow-xl p-4 z-50 animate-in fade-in zoom-in-95 duration-200 w-[280px]">
                 {activeRole === UserRole.OPERATOR ? (
                   <input 
                     type="month" 
@@ -333,20 +340,13 @@ const AdminKPIReports: React.FC<AdminKPIReportsProps> = ({ users }) => {
             )}
           </div>
 
-          <div className="flex bg-background p-1.5 rounded-2xl border border-white/50 shadow-inner">
-            <button 
-              onClick={() => setActiveRole(UserRole.OPERATOR)}
-              className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeRole === UserRole.OPERATOR ? 'bg-surface text-primary shadow-sm' : 'text-secondary hover:text-primary'}`}
-            >
-              Operatorlar
-            </button>
-            <button 
-              onClick={() => setActiveRole(UserRole.COURIER)}
-              className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeRole === UserRole.COURIER ? 'bg-surface text-primary shadow-sm' : 'text-secondary hover:text-primary'}`}
-            >
-              Kuryerlar
-            </button>
-          </div>
+          <button 
+            onClick={exportPDF}
+            className="flex items-center gap-2 bg-surface text-primary border border-secondary/20 px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-background transition-all shadow-sm active:scale-95"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+            PDF
+          </button>
         </div>
       </header>
 
@@ -406,8 +406,8 @@ const AdminKPIReports: React.FC<AdminKPIReportsProps> = ({ users }) => {
                           {rep.user.fullName.charAt(0)}
                         </div>
                         <div>
-                          <p className="font-bold text-primary text-sm">{rep.user.fullName}</p>
-                          <p className="text-[9px] text-secondary font-black uppercase tracking-widest">ID: {rep.user.id.slice(-4)}</p>
+                          <p className="font-bold text-primary text-base">{rep.user.fullName}</p>
+                          <p className="text-xs text-secondary font-medium tracking-wide">ID: {rep.user.id.slice(-4)}</p>
                         </div>
                       </div>
                     </td>
@@ -422,7 +422,7 @@ const AdminKPIReports: React.FC<AdminKPIReportsProps> = ({ users }) => {
                         <td className="px-6 py-5 text-center font-bold text-secondary group-hover:text-primary transition-colors">{rep.scores?.speed || '-'}</td>
                         <td className="px-6 py-5 text-center font-bold text-secondary group-hover:text-primary transition-colors">{rep.scores?.check || '-'}</td>
                         <td className="px-6 py-5 text-right">
-                          <span className={`px-4 py-2 rounded-xl text-sm font-black border ${getStatusColor(Number(rep.finalScore))}`}>
+                          <span className={`px-4 py-2 rounded-xl text-base font-black ${getStatusColor(Number(rep.finalScore))}`}>
                             {Number(rep.finalScore).toFixed(2)}
                           </span>
                         </td>
