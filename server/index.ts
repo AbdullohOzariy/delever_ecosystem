@@ -19,6 +19,75 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // ---------------------------------------------------------
+// UTILS
+// ---------------------------------------------------------
+
+// Haftalik hisobot logikasi (Yakshanba - Shanba)
+const getWeekRange = (dateStr: string) => {
+  const date = new Date(dateStr);
+  const day = date.getDay(); 
+  
+  const start = new Date(date);
+  start.setDate(date.getDate() - day); 
+  start.setHours(0, 0, 0, 0);
+
+  const end = new Date(start);
+  end.setDate(start.getDate() + 6); 
+  end.setHours(23, 59, 59, 999);
+
+  console.log(`Week Range for ${dateStr}:`, start.toISOString(), end.toISOString()); // DEBUG
+  return { start, end };
+};
+
+// YYYY-Www formatidan haftaning Dushanba sanasini olish
+function getWeekStartFromWeekString(weekString: string) {
+  const [yearStr, weekNumStr] = weekString.split('-W');
+  const year = parseInt(yearStr);
+  const weekNum = parseInt(weekNumStr);
+
+  const jan1 = new Date(year, 0, 1);
+  const days = (weekNum - 1) * 7;
+
+  const weekStart = new Date(jan1);
+  weekStart.setDate(jan1.getDate() + days - (jan1.getDay() + 6) % 7); // Dushanbaga sozlash
+  weekStart.setHours(0, 0, 0, 0);
+  return weekStart;
+}
+
+function chunkArray<T>(array: T[], size: number): T[][] {
+  const chunked: T[][] = [];
+  for (let i = 0; i < array.length; i += size) {
+    chunked.push(array.slice(i, i + size));
+  }
+  return chunked;
+}
+
+const parseDate = (dateStr: string) => {
+  if (!dateStr) return new Date();
+  if (dateStr.includes('T')) return new Date(dateStr);
+  const [datePart, timePart] = dateStr.split(' ');
+  if (!datePart || !timePart) return new Date(dateStr);
+  return new Date(`${datePart}T${timePart}`);
+};
+
+const transliterate = (text: string) => {
+  const map: Record<string, string> = {
+    'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'yo', 'ж': 'j',
+    'з': 'z', 'и': 'i', 'й': 'y', 'к': 'k', 'л': 'l', 'м': 'm', 'н': 'n', 'о': 'o',
+    'п': 'p', 'р': 'r', 'с': 's', 'т': 't', 'у': 'u', 'ф': 'f', 'х': 'x', 'ц': 'ts',
+    'ч': 'ch', 'ш': 'sh', 'щ': 'shch', 'ъ': '', 'ы': 'y', 'ь': '', 'э': 'e', 'ю': 'yu',
+    'я': 'ya', 'ғ': 'g\'', 'қ': 'q', 'ҳ': 'h', 'ў': 'o\''
+  };
+  return text.toLowerCase().split('').map(char => map[char] || char).join('');
+};
+
+const cleanString = (str: string) => {
+  if (!str) return '';
+  let clean = str.replace(/^\uFEFF/, '').trim().toLowerCase();
+  return transliterate(clean);
+};
+
+// ---------------------------------------------------------
 // TELEGRAM NOTIFICATION
 // ---------------------------------------------------------
 const sendTelegramMessage = async (chatId: string, text: string): Promise<any> => {
@@ -255,39 +324,6 @@ app.put('/api/users/:id', async (req, res) => {
 });
 
 // ... (Qolgan Import, Schedule qismlari o'zgarishsiz) ...
-
-function chunkArray<T>(array: T[], size: number): T[][] {
-  const chunked: T[][] = [];
-  for (let i = 0; i < array.length; i += size) {
-    chunked.push(array.slice(i, i + size));
-  }
-  return chunked;
-}
-
-const parseDate = (dateStr: string) => {
-  if (!dateStr) return new Date();
-  if (dateStr.includes('T')) return new Date(dateStr);
-  const [datePart, timePart] = dateStr.split(' ');
-  if (!datePart || !timePart) return new Date(dateStr);
-  return new Date(`${datePart}T${timePart}`);
-};
-
-const transliterate = (text: string) => {
-  const map: Record<string, string> = {
-    'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'yo', 'ж': 'j',
-    'з': 'z', 'и': 'i', 'й': 'y', 'к': 'k', 'л': 'l', 'м': 'm', 'н': 'n', 'о': 'o',
-    'п': 'p', 'р': 'r', 'с': 's', 'т': 't', 'у': 'u', 'ф': 'f', 'х': 'x', 'ц': 'ts',
-    'ч': 'ch', 'ш': 'sh', 'щ': 'shch', 'ъ': '', 'ы': 'y', 'ь': '', 'э': 'e', 'ю': 'yu',
-    'я': 'ya', 'ғ': 'g\'', 'қ': 'q', 'ҳ': 'h', 'ў': 'o\''
-  };
-  return text.toLowerCase().split('').map(char => map[char] || char).join('');
-};
-
-const cleanString = (str: string) => {
-  if (!str) return '';
-  let clean = str.replace(/^\uFEFF/, '').trim().toLowerCase();
-  return transliterate(clean);
-};
 
 app.post('/api/orders/import', async (req, res) => {
   try {
@@ -598,23 +634,6 @@ app.get('/api/kpi/history/:userId', async (req, res) => {
     res.status(500).json({ error: "Tarixni yuklashda xatolik" });
   }
 });
-
-// YANGI: Haftalik hisobot logikasi (Yakshanba - Shanba)
-const getWeekRange = (dateStr: string) => {
-  const date = new Date(dateStr);
-  const day = date.getDay(); 
-  
-  const start = new Date(date);
-  start.setDate(date.getDate() - day); 
-  start.setHours(0, 0, 0, 0);
-
-  const end = new Date(start);
-  end.setDate(start.getDate() + 6); 
-  end.setHours(23, 59, 59, 999);
-
-  console.log(`Week Range for ${dateStr}:`, start.toISOString(), end.toISOString()); // DEBUG
-  return { start, end };
-};
 
 app.get('/api/kpi/report/:userId', async (req, res) => {
   try {
@@ -1073,22 +1092,6 @@ app.delete('/api/scripts/:id', async (req, res) => {
     res.json({ message: "Skript o'chirildi" });
   } catch (error) { res.status(500).json({ error: "Skript o'chirishda xatolik" }); }
 });
-
-// YYYY-Www formatidan haftaning Dushanba sanasini olish
-function getWeekStartFromWeekString(weekString: string) {
-  const [yearStr, weekNumStr] = weekString.split('-W');
-  const year = parseInt(yearStr);
-  const weekNum = parseInt(weekNumStr);
-
-  const jan1 = new Date(year, 0, 1);
-  const days = (weekNum - 1) * 7;
-
-  const weekStart = new Date(jan1);
-  weekStart.setDate(jan1.getDate() + days - (jan1.getDay() + 6) % 7); // Dushanbaga sozlash
-  weekStart.setHours(0, 0, 0, 0);
-  return weekStart;
-}
-
 
 app.listen(PORT, async () => {
   console.log(`🚀 Server ${PORT}-portda ishga tushdi`);

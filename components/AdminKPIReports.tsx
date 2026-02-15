@@ -114,10 +114,11 @@ const AdminKPIReports: React.FC<AdminKPIReportsProps> = ({ users }) => {
   };
 
   const handleConfirm = async (userId: string) => {
-    if (week === getCurrentWeek()) {
-      setToast({ message: "Joriy haftani tasdiqlab bo'lmaydi.", type: 'error' });
-      return;
-    }
+    // TEKSHIRUV OLIB TASHLANDI (Test uchun)
+    // if (week === getCurrentWeek()) {
+    //   setToast({ message: "Joriy haftani tasdiqlab bo'lmaydi.", type: 'error' });
+    //   return;
+    // }
     
     if (confirm("Tasdiqlaysizmi?")) {
       try {
