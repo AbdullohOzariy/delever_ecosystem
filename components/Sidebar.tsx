@@ -45,53 +45,60 @@ const Sidebar: React.FC<SidebarProps> = ({ user, activeTab, setActiveTab, onLogo
 
   return (
     <>
-      {/* DESKTOP HEADER (Unified) */}
-      <header className="hidden lg:flex items-center justify-between px-6 py-3 bg-surface shadow-soft sticky top-0 z-50 w-full">
+      {/* DESKTOP HEADER (Refined) */}
+      <header className="hidden lg:flex items-center justify-between px-8 h-20 bg-surface shadow-soft sticky top-0 z-50 w-full border-b border-secondary/5">
         
         {/* Left: Logo */}
-        <div className="flex items-center gap-3 w-48 shrink-0">
-          <div className="w-9 h-9 bg-accent rounded-xl flex items-center justify-center text-primary font-black text-lg shadow-sm">
+        <div className="flex items-center gap-4 w-64 shrink-0">
+          <div className="w-10 h-10 bg-accent rounded-2xl flex items-center justify-center text-primary font-black text-xl shadow-sm">
             D
           </div>
-          <h1 className="text-lg font-bold text-primary tracking-tight font-display">Delever</h1>
+          <div>
+            <h1 className="text-lg font-bold text-primary tracking-tight font-display leading-none">Delever</h1>
+            <p className="text-[10px] text-secondary font-medium tracking-widest uppercase mt-0.5">Ecosystem</p>
+          </div>
         </div>
 
         {/* Center: Navigation */}
         <nav className="flex-1 flex justify-center">
-          <div className="flex items-center gap-1 bg-background p-1 rounded-2xl border border-secondary/5">
+          <div className="flex items-center gap-1 bg-background p-1.5 rounded-3xl border border-secondary/5">
             {filteredItems.map(item => (
               <button
                 key={item.id}
                 onClick={() => handleTabClick(item.id)}
-                className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wide transition-all duration-300 flex items-center gap-2 ${
+                className={`px-5 py-2.5 rounded-2xl text-xs font-bold uppercase tracking-wide transition-all duration-300 flex items-center gap-2.5 ${
                   activeTab === item.id 
-                    ? 'bg-surface text-primary shadow-sm scale-105' 
+                    ? 'bg-surface text-primary shadow-soft scale-105' 
                     : 'text-secondary hover:text-primary hover:bg-surface/50'
                 }`}
               >
-                <item.icon className="w-4 h-4" strokeWidth={2} />
+                <item.icon 
+                  className={`w-4 h-4 transition-colors ${activeTab === item.id ? 'text-accent' : 'text-secondary group-hover:text-primary'}`} 
+                  strokeWidth={2} 
+                />
                 {item.label}
+                {activeTab === item.id && (
+                  <div className="w-1.5 h-1.5 bg-accent rounded-full ml-1 animate-pulse" />
+                )}
               </button>
             ))}
           </div>
         </nav>
 
         {/* Right: User & Time */}
-        <div className="flex items-center gap-6 w-48 justify-end shrink-0">
-          <p className="text-[10px] text-secondary font-bold uppercase tracking-widest hidden xl:block">
+        <div className="flex items-center gap-6 w-64 justify-end shrink-0">
+          <p className="text-[10px] text-secondary font-bold uppercase tracking-widest hidden xl:block bg-background px-3 py-1.5 rounded-lg border border-secondary/5">
             {formatDate(currentTime)}
           </p>
           
-          <div className="h-8 w-px bg-secondary/10 hidden xl:block"></div>
-
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 pl-6 border-l border-secondary/10">
             <div className="text-right hidden xl:block">
               <p className="text-xs font-bold text-primary">{user.fullName}</p>
               <p className="text-[9px] text-secondary font-bold uppercase tracking-widest">{user.role}</p>
             </div>
             <button 
               onClick={onLogout}
-              className="w-9 h-9 rounded-xl bg-rose-50 text-rose-500 flex items-center justify-center hover:bg-rose-100 transition-colors border border-rose-100"
+              className="w-10 h-10 rounded-2xl bg-rose-50 text-rose-500 flex items-center justify-center hover:bg-rose-100 transition-colors border border-rose-100 shadow-sm"
               title="Chiqish"
             >
               <ICONS.Logout className="w-4 h-4" strokeWidth={2} />
@@ -101,7 +108,7 @@ const Sidebar: React.FC<SidebarProps> = ({ user, activeTab, setActiveTab, onLogo
       </header>
 
       {/* MOBILE HEADER */}
-      <div className="lg:hidden bg-surface p-4 flex items-center justify-between sticky top-0 z-50 shadow-soft">
+      <div className="lg:hidden bg-surface p-4 flex items-center justify-between sticky top-0 z-50 shadow-soft border-b border-secondary/5">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 bg-accent rounded-xl flex items-center justify-center text-primary font-black text-lg shadow-sm">
             D
@@ -110,7 +117,7 @@ const Sidebar: React.FC<SidebarProps> = ({ user, activeTab, setActiveTab, onLogo
         </div>
         <button 
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          className="p-2.5 bg-background rounded-xl text-primary"
+          className="p-2.5 bg-background rounded-xl text-primary border border-secondary/10"
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
         </button>
