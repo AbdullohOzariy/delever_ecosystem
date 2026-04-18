@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { User, UserRole } from '../types';
-import { api } from '../api';
+import { api, API_URL } from '../api';
 import Toast from './ui/Toast';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -68,12 +68,8 @@ const AdminKPIReports: React.FC<AdminKPIReportsProps> = ({ users }) => {
   const getWeekRangeDisplay = (weekStr: string) => {
     const monday = getDateFromWeek(weekStr);
     const sunday = new Date(monday);
-    sunday.setDate(monday.getDate() - 1); 
-    
-    const saturday = new Date(sunday);
-    saturday.setDate(sunday.getDate() + 6); 
-
-    return `${sunday.toLocaleDateString('uz-UZ')} - ${saturday.toLocaleDateString('uz-UZ')}`;
+    sunday.setDate(monday.getDate() + 6);
+    return `${monday.toLocaleDateString('uz-UZ')} - ${sunday.toLocaleDateString('uz-UZ')}`;
   };
 
   const loadAllReports = async () => {
@@ -87,7 +83,7 @@ const AdminKPIReports: React.FC<AdminKPIReportsProps> = ({ users }) => {
           if (activeRole === UserRole.COURIER) {
             const monday = getDateFromWeek(week);
             const dateStr = monday.toISOString().slice(0, 10);
-            const res = await fetch(`${import.meta.env.PROD ? '/api' : 'http://localhost:3001/api'}/kpi/report/${user.id}?period=weekly&week=${dateStr}`);
+            const res = await fetch(`${API_URL}/kpi/report/${user.id}?period=weekly&week=${dateStr}`);
             data = await res.json();
           } else {
             data = await api.getKPIReport(user.id, month);

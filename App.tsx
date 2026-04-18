@@ -152,15 +152,6 @@ const App: React.FC = () => {
     setActiveTab('');
   };
 
-  const handleAddUser = async (newUser: User) => {
-    try {
-      await api.register(newUser);
-      loadUsers();
-      alert("Foydalanuvchi yaratildi!");
-    } catch (error) {
-      alert("Xatolik yuz berdi");
-    }
-  };
 
   const handleUpdateUsers = (updatedUsers: User[]) => {
     setUsers(updatedUsers);
@@ -245,9 +236,8 @@ const App: React.FC = () => {
         {activeTab === 'courier_reports' && <CourierReports user={currentUser} />}
         
         {activeTab === 'admin_kpi' && (
-          <AdminKPIEntry 
-            users={users} 
-            onAddUser={handleAddUser}
+          <AdminKPIEntry
+            users={users}
           />
         )}
         {activeTab === 'kpi_reports' && (
@@ -258,9 +248,8 @@ const App: React.FC = () => {
         {activeTab === 'rating' && <RatingView />}
         {activeTab === 'feedback' && <FeedbackSystem user={currentUser} />}
         {activeTab === 'users' && (
-          <AdminPortal 
-            users={users} 
-            onAddUser={handleAddUser} 
+          <AdminPortal
+            users={users}
             onUpdateUsers={handleUpdateUsers}
           />
         )}

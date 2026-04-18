@@ -5,7 +5,6 @@ import Toast from './ui/Toast';
 
 interface AdminKPIEntryProps {
   users: User[];
-  onAddUser: (user: User) => void;
 }
 
 const AdminKPIEntry: React.FC<AdminKPIEntryProps> = ({ users }) => {

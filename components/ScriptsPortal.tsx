@@ -178,8 +178,6 @@ const ScriptsPortal: React.FC<ScriptsPortalProps> = ({ user }) => {
     return groups;
   }, [scripts, search]);
 
-  const categories = ['all', ...Array.from(new Set(scripts.map(s => s.category).filter(Boolean)))];
-
   return (
     <div className="space-y-8 animate-in fade-in duration-500 pb-20 relative">
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}

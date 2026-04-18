@@ -4,7 +4,6 @@ import dotenv from 'dotenv';
 import { PrismaClient, OrderStatus, AttendanceStatus } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import fetch from 'node-fetch'; 
 
 dotenv.config();
 
@@ -25,8 +24,6 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 // Haftalik hisobot logikasi (Dushanba - Yakshanba)
 const getWeekRange = (dateStr: string) => {
   const date = new Date(dateStr);
-  const day = date.getDay(); 
-  
   const start = new Date(date);
   start.setHours(0, 0, 0, 0);
 
@@ -1101,6 +1098,108 @@ app.delete('/api/scripts/:id', async (req, res) => {
     await prisma.script.delete({ where: { id } });
     res.json({ message: "Skript o'chirildi" });
   } catch (error) { res.status(500).json({ error: "Skript o'chirishda xatolik" }); }
+});
+
+// ---------------------------------------------------------
+// USERS - DELETE
+// ---------------------------------------------------------
+app.delete('/api/users/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    await prisma.user.delete({ where: { id } });
+    res.json({ message: "Xodim o'chirildi" });
+  } catch (error) { res.status(500).json({ error: "Xodimni o'chirishda xatolik" }); }
+});
+
+// ---------------------------------------------------------
+// OPERATORS & COURIERS (filtered user lists)
+// ---------------------------------------------------------
+app.get('/api/operators', async (req, res) => {
+  try {
+    const operators = await prisma.user.findMany({
+      where: { role: 'OPERATOR', status: 'ACTIVE' },
+      select: { id: true, username: true, fullName: true, role: true, status: true }
+    });
+    res.json(operators);
+  } catch (error) { res.status(500).json({ error: "Operatorlarni olishda xatolik" }); }
+});
+
+app.get('/api/couriers', async (req, res) => {
+  try {
+    const couriers = await prisma.user.findMany({
+      where: { role: 'COURIER', status: 'ACTIVE' },
+      select: { id: true, username: true, fullName: true, role: true, status: true }
+    });
+    res.json(couriers);
+  } catch (error) { res.status(500).json({ error: "Kuryerlarni olishda xatolik" }); }
+});
+
+// ---------------------------------------------------------
+// RATINGS
+// ---------------------------------------------------------
+app.post('/api/ratings', async (req, res) => {
+  try {
+    const { fromUserId, toUserId, score, comment, week } = req.body;
+    const weekStart = getWeekStartFromWeekString(week);
+    const dateOnly = new Date(weekStart.toISOString().slice(0, 10));
+
+    const rating = await prisma.rating.upsert({
+      where: { fromUserId_toUserId_date: { fromUserId, toUserId, date: dateOnly } },
+      update: { score, comment },
+      create: { fromUserId, toUserId, score, comment, date: dateOnly }
+    });
+    res.json(rating);
+  } catch (error) { res.status(500).json({ error: "Reyting saqlashda xatolik: " + (error as Error).message }); }
+});
+
+app.get('/api/ratings/all', async (req, res) => {
+  try {
+    const ratings = await prisma.rating.findMany({
+      include: {
+        fromUser: { select: { id: true, fullName: true, role: true } },
+        toUser: { select: { id: true, fullName: true, role: true } }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+    res.json(ratings);
+  } catch (error) { res.status(500).json({ error: "Reytinglarni olishda xatolik" }); }
+});
+
+app.get('/api/ratings/courier/:fromUserId/:week', async (req, res) => {
+  try {
+    const { fromUserId, week } = req.params;
+    const weekStart = getWeekStartFromWeekString(week);
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 6);
+
+    const ratings = await prisma.rating.findMany({
+      where: {
+        fromUserId,
+        date: { gte: weekStart, lte: weekEnd }
+      },
+      include: { toUser: { select: { id: true, fullName: true, role: true } } }
+    });
+    res.json(ratings);
+  } catch (error) { res.status(500).json({ error: "Reytinglarni olishda xatolik" }); }
+});
+
+// ---------------------------------------------------------
+// ADMIN CHECKLIST
+// ---------------------------------------------------------
+app.get('/api/admin/checklist', async (req, res) => {
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const [totalUsers, activeUsers, pendingPayments, todayOrders] = await Promise.all([
+      prisma.user.count(),
+      prisma.user.count({ where: { status: 'ACTIVE' } }),
+      prisma.payment.count({ where: { status: 'PENDING' } }),
+      prisma.order.count({ where: { deliveryDate: { gte: today } } })
+    ]);
+
+    res.json({ totalUsers, activeUsers, pendingPayments, todayOrders });
+  } catch (error) { res.status(500).json({ error: "Checklist olishda xatolik" }); }
 });
 
 app.listen(PORT, async () => {

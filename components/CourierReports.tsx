@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { User } from '../types';
-import { api } from '../api';
+import { api, API_URL } from '../api';
 
 interface CourierReportsProps {
   user: User;
@@ -47,16 +47,11 @@ const CourierReports: React.FC<CourierReportsProps> = ({ user }) => {
     return ISOweekStart; 
   };
 
-  // YANGI: Hafta oralig'ini hisoblash (Yakshanba - Shanba)
   const getWeekRangeDisplay = (weekStr: string) => {
     const monday = getDateFromWeek(weekStr);
     const sunday = new Date(monday);
-    sunday.setDate(monday.getDate() - 1); // Yakshanba (Hafta boshi)
-    
-    const saturday = new Date(sunday);
-    saturday.setDate(sunday.getDate() + 6); // Shanba (Hafta oxiri)
-
-    return `${sunday.toLocaleDateString('uz-UZ')} - ${saturday.toLocaleDateString('uz-UZ')}`;
+    sunday.setDate(monday.getDate() + 6);
+    return `${monday.toLocaleDateString('uz-UZ')} - ${sunday.toLocaleDateString('uz-UZ')}`;
   };
 
   const loadReport = async () => {
@@ -67,7 +62,7 @@ const CourierReports: React.FC<CourierReportsProps> = ({ user }) => {
         const monday = getDateFromWeek(week);
         const dateStr = monday.toISOString().slice(0, 10);
         
-        const res = await fetch(`${import.meta.env.PROD ? '/api' : 'http://localhost:3001/api'}/kpi/report/${user.id}?period=weekly&week=${dateStr}`);
+        const res = await fetch(`${API_URL}/kpi/report/${user.id}?period=weekly&week=${dateStr}`);
         data = await res.json();
       } else {
         data = await api.getKPIReport(user.id, month);

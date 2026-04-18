@@ -5,11 +5,10 @@ import Toast from './ui/Toast';
 
 interface AdminPortalProps {
   users: User[];
-  onAddUser: (user: User) => void;
   onUpdateUsers: (users: User[]) => void;
 }
 
-const AdminPortal: React.FC<AdminPortalProps> = ({ users, onAddUser, onUpdateUsers }) => {
+const AdminPortal: React.FC<AdminPortalProps> = ({ users, onUpdateUsers }) => {
   const [newUser, setNewUser] = useState<Partial<User>>({ role: UserRole.OPERATOR, status: UserStatus.ACTIVE });
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);

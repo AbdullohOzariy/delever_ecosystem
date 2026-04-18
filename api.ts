@@ -2,7 +2,7 @@
 // Agar production bo'lsa, '/api' ishlatamiz (Nginx proxy qiladi)
 // Agar local bo'lsa, 'http://localhost:3001/api'
 
-const API_URL = import.meta.env.PROD ? '/api' : 'http://localhost:3001/api';
+export const API_URL = import.meta.env.PROD ? '/api' : 'http://localhost:3001/api';
 
 export const api = {
   // Auth
@@ -39,6 +39,7 @@ export const api = {
   // Users
   getUsers: async () => {
     const res = await fetch(`${API_URL}/users`);
+    if (!res.ok) throw new Error('Failed to fetch users');
     return res.json();
   },
 
@@ -48,6 +49,7 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
+    if (!res.ok) throw new Error('Failed to update user');
     return res.json();
   },
 
@@ -66,11 +68,13 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
+    if (!res.ok) throw new Error('Failed to generate schedule');
     return res.json();
   },
 
   getSchedule: async (userId: string) => {
     const res = await fetch(`${API_URL}/schedule/${userId}`);
+    if (!res.ok) throw new Error('Failed to fetch schedule');
     return res.json();
   },
 
@@ -81,6 +85,7 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
+    if (!res.ok) throw new Error('Failed to save KPI');
     return res.json();
   },
 
@@ -90,6 +95,7 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
+    if (!res.ok) throw new Error('Failed to confirm KPI');
     return res.json();
   },
 
@@ -99,25 +105,29 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
+    if (!res.ok) throw new Error('Failed to confirm all KPI');
     return res.json();
   },
 
   getKPIReport: async (userId: string, month: string) => {
     const res = await fetch(`${API_URL}/kpi/report/${userId}?month=${month}`);
+    if (!res.ok) throw new Error('Failed to fetch KPI report');
     return res.json();
   },
 
   getKPIHistory: async (userId: string, month?: string) => {
-    const url = month 
+    const url = month
       ? `${API_URL}/kpi/history/${userId}?month=${month}`
       : `${API_URL}/kpi/history/${userId}`;
     const res = await fetch(url);
+    if (!res.ok) throw new Error('Failed to fetch KPI history');
     return res.json();
   },
 
   // Orders (Master Data)
   getOrders: async () => {
     const res = await fetch(`${API_URL}/orders`);
+    if (!res.ok) throw new Error('Failed to fetch orders');
     return res.json();
   },
 
@@ -127,6 +137,7 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ orders }),
     });
+    if (!res.ok) throw new Error('Failed to import orders');
     return res.json();
   },
 
@@ -134,6 +145,7 @@ export const api = {
     const res = await fetch(`${API_URL}/orders`, {
       method: 'DELETE',
     });
+    if (!res.ok) throw new Error('Failed to delete orders');
     return res.json();
   },
 
@@ -141,6 +153,7 @@ export const api = {
   getPayments: async (status?: string) => {
     const url = status ? `${API_URL}/payments?status=${status}` : `${API_URL}/payments`;
     const res = await fetch(url);
+    if (!res.ok) throw new Error('Failed to fetch payments');
     return res.json();
   },
 
@@ -148,6 +161,7 @@ export const api = {
     const res = await fetch(`${API_URL}/payments/${id}/pay`, {
       method: 'POST',
     });
+    if (!res.ok) throw new Error('Failed to process payment');
     return res.json();
   },
 
@@ -155,6 +169,7 @@ export const api = {
     const res = await fetch(`${API_URL}/payments/${id}/cancel`, {
       method: 'POST',
     });
+    if (!res.ok) throw new Error('Failed to cancel payment');
     return res.json();
   },
 
@@ -162,28 +177,33 @@ export const api = {
     const res = await fetch(`${API_URL}/payments/reset-all`, {
       method: 'POST',
     });
+    if (!res.ok) throw new Error('Failed to reset payments');
     return res.json();
   },
 
   getPendingFeedback: async (userId: string) => {
     const res = await fetch(`${API_URL}/payments/pending-feedback/${userId}`);
+    if (!res.ok) throw new Error('Failed to fetch pending feedback');
     return res.json();
   },
 
   // Checklist
   getAdminChecklist: async () => {
     const res = await fetch(`${API_URL}/admin/checklist`);
+    if (!res.ok) throw new Error('Failed to fetch checklist');
     return res.json();
   },
 
-  // Ratings (YANGI)
+  // Ratings
   getOperators: async () => {
     const res = await fetch(`${API_URL}/operators`);
+    if (!res.ok) throw new Error('Failed to fetch operators');
     return res.json();
   },
 
   getCouriers: async () => {
     const res = await fetch(`${API_URL}/couriers`);
+    if (!res.ok) throw new Error('Failed to fetch couriers');
     return res.json();
   },
 
@@ -193,22 +213,26 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
+    if (!res.ok) throw new Error('Failed to save rating');
     return res.json();
   },
 
   getRatingsForCourierAndWeek: async (fromUserId: string, week: string) => {
     const res = await fetch(`${API_URL}/ratings/courier/${fromUserId}/${week}`);
+    if (!res.ok) throw new Error('Failed to fetch ratings');
     return res.json();
   },
 
   getAllRatings: async () => {
     const res = await fetch(`${API_URL}/ratings/all`);
+    if (!res.ok) throw new Error('Failed to fetch all ratings');
     return res.json();
   },
 
-  // SCRIPTS (YANGI)
+  // Scripts
   getScripts: async () => {
     const res = await fetch(`${API_URL}/scripts`);
+    if (!res.ok) throw new Error('Failed to fetch scripts');
     return res.json();
   },
 
@@ -218,6 +242,7 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
+    if (!res.ok) throw new Error('Failed to create script');
     return res.json();
   },
 
@@ -227,6 +252,7 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
+    if (!res.ok) throw new Error('Failed to update script');
     return res.json();
   },
 
@@ -234,6 +260,7 @@ export const api = {
     const res = await fetch(`${API_URL}/scripts/${id}`, {
       method: 'DELETE',
     });
+    if (!res.ok) throw new Error('Failed to delete script');
     return res.json();
   }
 };
