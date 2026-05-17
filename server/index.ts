@@ -1235,7 +1235,7 @@ app.get('/api/admin/checklist', async (req, res) => {
       prisma.user.count(),
       prisma.user.count({ where: { status: 'ACTIVE' } }),
       prisma.payment.count({ where: { status: 'PENDING' } }),
-      prisma.order.count({ where: { deliveryDate: { gte: today } } })
+      prisma.order.count({ where: { createdAt: { gte: today } } })
     ]);
 
     res.json({ totalUsers, activeUsers, pendingPayments, todayOrders });
