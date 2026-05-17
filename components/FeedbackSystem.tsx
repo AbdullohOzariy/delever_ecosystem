@@ -49,13 +49,10 @@ const FeedbackSystem: React.FC<FeedbackSystemProps> = ({ user }) => {
       // Unikal haftalarni olish (value bo'yicha)
       const uniqueWeeks = Array.from(new Map(weeks.map((item: any) => [item.value, item])).values());
       
-      // @ts-ignore
-      setPendingWeeks(uniqueWeeks);
-      
-      // Agar qarz bo'lsa, birinchisini avtomatik tanlash
+      setPendingWeeks(uniqueWeeks as { label: string; value: string }[]);
+
       if (uniqueWeeks.length > 0 && !selectedWeek) {
-        // @ts-ignore
-        setSelectedWeek(uniqueWeeks[0].value);
+        setSelectedWeek((uniqueWeeks[0] as { label: string; value: string }).value);
       }
     } catch (error) {
       console.error("Kutilayotgan baholashlarni yuklashda xatolik");

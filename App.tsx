@@ -70,18 +70,25 @@ const App: React.FC = () => {
     const savedUser = localStorage.getItem('delever_user');
 
     if (token && savedUser) {
-      const user = JSON.parse(savedUser);
-      setCurrentUser(user);
-      
-      // Saqlangan tabni yuklash
-      const savedTab = localStorage.getItem('activeTab');
-      if (savedTab) {
-        setActiveTab(savedTab);
-      } else {
-        setInitialTab(user);
+      try {
+        const user = JSON.parse(savedUser);
+        if (user && user.id && user.role) {
+          setCurrentUser(user);
+          const savedTab = localStorage.getItem('activeTab');
+          if (savedTab) {
+            setActiveTab(savedTab);
+          } else {
+            setInitialTab(user);
+          }
+          if (user.role === UserRole.ADMIN) loadUsers();
+        } else {
+          localStorage.removeItem('token');
+          localStorage.removeItem('delever_user');
+        }
+      } catch {
+        localStorage.removeItem('token');
+        localStorage.removeItem('delever_user');
       }
-
-      if (user.role === UserRole.ADMIN) loadUsers();
     }
     setAuthLoading(false);
   };

@@ -77,9 +77,7 @@ const ScriptsPortal: React.FC<ScriptsPortalProps> = ({ user }) => {
         if (newScripts.length === 1) {
           await api.createScript(newScripts[0]);
         } else {
-          // Backend massiv qabul qiladigan qilib o'zgartirildi
-          // @ts-ignore
-          await api.createScript(newScripts); 
+          await api.createScript(newScripts);
         }
         setToast({ message: `${newScripts.length} ta skript yaratildi`, type: 'success' });
       }

@@ -11,9 +11,24 @@ const app = express();
 const prisma = new PrismaClient();
 const PORT = process.env.PORT || 3001;
 const JWT_SECRET = process.env.JWT_SECRET || 'super_secret_key';
-const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || 'YOUR_BOT_TOKEN_HERE'; 
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
+const ADMIN_DEFAULT_PASSWORD = process.env.ADMIN_DEFAULT_PASSWORD || '8852610';
+const NEW_USER_DEFAULT_PASSWORD = process.env.NEW_USER_DEFAULT_PASSWORD || '123456';
 
-app.use(cors());
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',')
+  : ['http://localhost:3000', 'http://localhost:5173'];
+
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('CORS: ruxsatsiz origin'));
+    }
+  },
+  credentials: true,
+}));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
@@ -193,7 +208,7 @@ const initDefaultAdmin = async () => {
     const adminUsername = 'Bozorov';
     const existingAdmin = await prisma.user.findUnique({ where: { username: adminUsername } });
     if (!existingAdmin) {
-      const hashedPassword = await bcrypt.hash('8852610', 10);
+      const hashedPassword = await bcrypt.hash(ADMIN_DEFAULT_PASSWORD, 10);
       await prisma.user.create({
         data: { username: adminUsername, fullName: 'Bozorov (Admin)', password: hashedPassword, role: 'ADMIN', status: 'ACTIVE' }
       });
@@ -371,7 +386,7 @@ app.post('/api/orders/import', async (req, res) => {
     for (const name of newOperators) {
       const formattedName = name.charAt(0).toUpperCase() + name.slice(1);
       const username = name.replace(/\s+/g, '_') + '_' + Math.floor(Math.random() * 1000);
-      const hashedPassword = await bcrypt.hash('123456', 10);
+      const hashedPassword = await bcrypt.hash(NEW_USER_DEFAULT_PASSWORD, 10);
       const user = await prisma.user.create({
         data: { username, fullName: formattedName, password: hashedPassword, role: 'OPERATOR', status: 'ACTIVE' }
       });
@@ -382,7 +397,7 @@ app.post('/api/orders/import', async (req, res) => {
     for (const name of newCouriers) {
       const formattedName = name.charAt(0).toUpperCase() + name.slice(1);
       const username = name.replace(/\s+/g, '_') + '_' + Math.floor(Math.random() * 1000);
-      const hashedPassword = await bcrypt.hash('123456', 10);
+      const hashedPassword = await bcrypt.hash(NEW_USER_DEFAULT_PASSWORD, 10);
       const user = await prisma.user.create({
         data: { username, fullName: formattedName, password: hashedPassword, role: 'COURIER', status: 'ACTIVE' }
       });
@@ -453,12 +468,21 @@ app.post('/api/orders/import', async (req, res) => {
 });
 
 app.get('/api/orders', async (req, res) => {
-  const orders = await prisma.order.findMany({
-    include: { operator: true, courier: true },
-    orderBy: { createdAt: 'desc' },
-    // take: 100 // <--- LIMIT OLIB TASHLANDI
-  });
-  res.json(orders);
+  const page = Math.max(1, parseInt(req.query.page as string) || 1);
+  const limit = Math.min(500, Math.max(1, parseInt(req.query.limit as string) || 200));
+  const skip = (page - 1) * limit;
+
+  const [orders, total] = await Promise.all([
+    prisma.order.findMany({
+      include: { operator: true, courier: true },
+      orderBy: { createdAt: 'desc' },
+      skip,
+      take: limit,
+    }),
+    prisma.order.count(),
+  ]);
+
+  res.json({ orders, total, page, limit, totalPages: Math.ceil(total / limit) });
 });
 
 app.delete('/api/orders', async (req, res) => {
@@ -561,10 +585,11 @@ app.post('/api/kpi/daily', async (req, res) => {
 
 app.post('/api/kpi/confirm', async (req, res) => {
   try {
-    const { userId, week } = req.body; 
+    const { userId, week } = req.body;
     const range = getWeekRange(week);
-    
-    console.log(`Confirming KPI for ${userId}, Week: ${week}`); // DEBUG
+
+    const targetUser = await prisma.user.findUnique({ where: { id: userId } });
+    if (!targetUser) return res.status(404).json({ error: 'Foydalanuvchi topilmadi' });
 
     // 1. KPI ni tasdiqlash
     await prisma.dailyKPI.updateMany({
@@ -578,28 +603,40 @@ app.post('/api/kpi/confirm', async (req, res) => {
     });
 
     if (existingPayment) {
-      console.log("Payment already exists, skipping creation."); // DEBUG
       return res.json({ message: "Bu hafta uchun to'lov allaqachon mavjud" });
     }
 
-    // 3. Hisoblash
+    // 3. Hisoblash — role ga qarab to'g'ri field ishlatish
+    const isCourier = targetUser.role === 'COURIER';
     const orders = await prisma.order.findMany({
-      where: { courierId: userId, createdAt: { gte: range.start, lte: range.end }, status: 'DELIVERED' }
+      where: {
+        [isCourier ? 'courierId' : 'operatorId']: userId,
+        createdAt: { gte: range.start, lte: range.end },
+        status: 'DELIVERED'
+      }
     });
-    
+
     const dailyKPIs = await prisma.dailyKPI.findMany({
       where: { userId, date: { gte: range.start, lte: range.end } }
     });
 
     let totalAmount = 0;
-    orders.forEach(o => {
-      totalAmount += Number(o.deliveryPrice);
-      if (o.deliveryTimeSeconds && o.deliveryTimeSeconds < 1800) totalAmount += 1000;
-      if (Number(o.deliveryPrice) === 8000 || Number(o.deliveryPrice) === 10000) {
-        totalAmount += 1000; 
-      }
-    });
-    
+
+    if (isCourier) {
+      orders.forEach(o => {
+        totalAmount += Number(o.deliveryPrice);
+        if (o.deliveryTimeSeconds && o.deliveryTimeSeconds < 1800) totalAmount += 1000;
+        if (Number(o.deliveryPrice) === 8000 || Number(o.deliveryPrice) === 10000) {
+          totalAmount += 1000;
+        }
+      });
+    } else {
+      // Operator uchun: har bir yetkazilgan buyurtma uchun hisoblash
+      orders.forEach(o => {
+        totalAmount += Number(o.amount) * 0.01; // 1% komisyon
+      });
+    }
+
     dailyKPIs.forEach(k => {
       totalAmount += Number(k.bonusAmount);
     });
@@ -675,17 +712,20 @@ app.post('/api/kpi/confirm-all', async (req, res) => {
         });
 
         let totalAmount = 0;
-        
+
         if (role === 'COURIER') {
           orders.forEach(o => {
             totalAmount += Number(o.deliveryPrice);
             if (o.deliveryTimeSeconds && o.deliveryTimeSeconds < 1800) totalAmount += 1000;
             if (Number(o.deliveryPrice) === 8000 || Number(o.deliveryPrice) === 10000) {
-              totalAmount += 1000; 
+              totalAmount += 1000;
             }
           });
         } else {
-          // Operator uchun hisoblash (agar kerak bo'lsa)
+          // Operator uchun: har bir yetkazilgan buyurtma uchun hisoblash
+          orders.forEach(o => {
+            totalAmount += Number(o.amount) * 0.01; // 1% komisyon
+          });
         }
         
         dailyKPIs.forEach(k => {

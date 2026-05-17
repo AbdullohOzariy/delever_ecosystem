@@ -125,10 +125,12 @@ export const api = {
   },
 
   // Orders (Master Data)
-  getOrders: async () => {
-    const res = await fetch(`${API_URL}/orders`);
+  getOrders: async (page = 1, limit = 200) => {
+    const res = await fetch(`${API_URL}/orders?page=${page}&limit=${limit}`);
     if (!res.ok) throw new Error('Failed to fetch orders');
-    return res.json();
+    const data = await res.json();
+    // Pagination formatini qo'llab-quvvatlash
+    return Array.isArray(data) ? data : data.orders;
   },
 
   importOrders: async (orders: any[]) => {
@@ -236,7 +238,7 @@ export const api = {
     return res.json();
   },
 
-  createScript: async (data: any) => {
+  createScript: async (data: Record<string, unknown> | Record<string, unknown>[]) => {
     const res = await fetch(`${API_URL}/scripts`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

@@ -44,8 +44,7 @@ const CashierPortal: React.FC = () => {
   const handleCancel = async (id: string) => {
     if (confirm("To'lovni bekor qilasizmi? KPI qayta ochiladi.")) {
       try {
-        // @ts-ignore
-        await api.cancelPayment(id); // api.ts da cancelPayment qo'shilgan bo'lishi kerak
+        await api.cancelPayment(id);
         setToast({ message: "To'lov bekor qilindi", type: 'info' });
         loadPayments();
       } catch (error) {
