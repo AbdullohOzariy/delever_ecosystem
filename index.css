@@ -2,28 +2,130 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  font-family: 'Inter', sans-serif;
-  background-color: #F4F7F6;
-  color: #1A1D1F;
+@layer base {
+  body {
+    font-family: 'Inter', sans-serif;
+    background-color: #F0F2F5;
+    color: #1A1D1F;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+  }
 }
 
-h1, h2, h3, h4, h5, h6 {
-  font-family: 'Plus Jakarta Sans', sans-serif;
+/* Scrollbar */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #D1D5DB; border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: #9CA3AF; }
+
+/* Animatsiyalar */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.97); }
+  to   { opacity: 1; transform: scale(1); }
 }
 
-/* Custom Scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+.animate-fadeIn  { animation: fadeIn  0.35s ease both; }
+.animate-slideUp { animation: slideUp 0.4s ease both; }
+.animate-scaleIn { animation: scaleIn 0.3s ease both; }
+
+/* Staggered children */
+.stagger > * { animation: fadeIn 0.35s ease both; }
+.stagger > *:nth-child(1) { animation-delay: 0.05s; }
+.stagger > *:nth-child(2) { animation-delay: 0.10s; }
+.stagger > *:nth-child(3) { animation-delay: 0.15s; }
+.stagger > *:nth-child(4) { animation-delay: 0.20s; }
+.stagger > *:nth-child(5) { animation-delay: 0.25s; }
+.stagger > *:nth-child(6) { animation-delay: 0.30s; }
+
+/* Card */
+@layer components {
+  .card {
+    @apply bg-white rounded-2xl shadow-sm border border-gray-100 transition-all duration-200;
+  }
+  .card-hover {
+    @apply hover:shadow-md hover:-translate-y-0.5;
+  }
+  .btn-primary {
+    @apply bg-primary text-white font-bold rounded-xl px-5 py-2.5 text-sm transition-all
+           hover:bg-primary/90 active:scale-[0.98] shadow-sm;
+  }
+  .btn-accent {
+    @apply bg-accent text-primary font-bold rounded-xl px-5 py-2.5 text-sm transition-all
+           hover:bg-accentHover active:scale-[0.98] shadow-sm shadow-accent/20;
+  }
+  .btn-ghost {
+    @apply text-secondary font-semibold rounded-xl px-4 py-2 text-sm transition-all
+           hover:bg-gray-100 hover:text-primary;
+  }
+  .input {
+    @apply w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm
+           font-medium text-primary placeholder-gray-400 outline-none
+           focus:ring-2 focus:ring-accent/40 focus:border-accent/40 transition-all;
+  }
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wide;
+  }
+  .page-header {
+    @apply flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8;
+  }
+  .page-title {
+    @apply text-2xl font-black text-primary tracking-tight;
+  }
+  .page-subtitle {
+    @apply text-xs text-secondary font-medium mt-0.5;
+  }
+  .stat-card {
+    @apply card p-5 flex flex-col gap-1;
+  }
+  .stat-value {
+    @apply text-2xl font-black text-primary;
+  }
+  .stat-label {
+    @apply text-[11px] font-semibold text-secondary uppercase tracking-wide;
+  }
 }
-::-webkit-scrollbar-track {
-  background: transparent;
+
+/* Table */
+.table-wrapper {
+  @apply overflow-x-auto rounded-2xl border border-gray-100;
 }
-::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 3px;
+table {
+  @apply w-full text-sm border-collapse;
 }
-::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+thead tr {
+  @apply bg-gray-50 border-b border-gray-100;
 }
+thead th {
+  @apply px-4 py-3 text-left text-[11px] font-bold text-secondary uppercase tracking-wide whitespace-nowrap;
+}
+tbody tr {
+  @apply border-b border-gray-50 transition-colors;
+}
+tbody tr:last-child {
+  @apply border-none;
+}
+tbody tr:hover {
+  @apply bg-gray-50/70;
+}
+tbody td {
+  @apply px-4 py-3 text-sm text-primary;
+}
+
+/* Scrollbar hide utility */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar { display: none; }

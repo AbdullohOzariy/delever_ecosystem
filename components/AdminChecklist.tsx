@@ -5,79 +5,98 @@ interface AdminChecklistProps {
   setActiveTab: (tab: string) => void;
 }
 
+const typeConfig: Record<string, { label: string; color: string; bg: string; desc: string }> = {
+  DAILY:   { label: 'Kunlik',  color: 'text-blue-600',   bg: 'bg-blue-50',   desc: 'Operatorlarning KPI ballarini kiriting.' },
+  WEEKLY:  { label: 'Haftalik',color: 'text-violet-600', bg: 'bg-violet-50', desc: 'Kuryerlarning haftalik hisobotini tasdiqlang.' },
+  IMPORT:  { label: 'Yuklash', color: 'text-amber-600',  bg: 'bg-amber-50',  desc: 'Yangi buyurtmalar CSV faylini yuklang.' },
+};
+
 const AdminChecklist: React.FC<AdminChecklistProps> = ({ setActiveTab }) => {
-  const [tasks, setTasks] = useState<any[]>([]);
+  const [tasks, setTasks]     = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadChecklist();
-  }, []);
+  useEffect(() => { load(); }, []);
 
-  const loadChecklist = async () => {
+  const load = async () => {
     try {
       const data = await api.getAdminChecklist();
       setTasks(data);
-    } catch (error) {
-      console.error("Checklist yuklashda xatolik");
+    } catch {
+      /* silent */
     } finally {
       setLoading(false);
     }
   };
 
-  if (loading) return <div className="p-10 text-center text-secondary font-bold">Yuklanmoqda...</div>;
+  if (loading) return (
+    <div className="flex items-center justify-center py-32">
+      <div className="w-6 h-6 border-2 border-gray-200 border-t-primary rounded-full animate-spin" />
+    </div>
+  );
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500 pb-20">
-      <header className="bg-surface p-8 rounded-4xl shadow-soft border border-white/50">
-        <h2 className="text-3xl font-black text-primary tracking-tight uppercase">Vazifalar</h2>
-        <p className="text-secondary font-medium text-xs uppercase tracking-widest mt-1">
-          Bajarilishi kerak bo'lgan ishlar
-        </p>
-      </header>
+    <div className="space-y-6 animate-fadeIn pb-20">
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {tasks.map((task) => (
-          <div key={task.id} className="bg-surface p-8 rounded-4xl shadow-soft border border-white/50 flex flex-col justify-between group hover:shadow-hover transition-all duration-300">
-            <div>
-              <div className="flex justify-between items-start mb-4">
-                <span className={`px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-widest border ${
-                  task.type === 'DAILY' 
-                    ? 'bg-blue-50 text-blue-700 border-blue-200' 
-                    : task.type === 'WEEKLY' 
-                      ? 'bg-purple-50 text-purple-700 border-purple-200'
-                      : 'bg-amber-50 text-amber-700 border-amber-200'
-                }`}>
-                  {task.type === 'DAILY' ? 'Kunlik' : task.type === 'WEEKLY' ? 'Haftalik' : 'Yuklash'}
-                </span>
-                <span className="text-xs font-bold text-secondary">{task.date}</span>
-              </div>
-              <h3 className="text-xl font-black text-primary mb-2 leading-tight">{task.title}</h3>
-              <p className="text-xs text-secondary font-medium leading-relaxed">
-                {task.type === 'DAILY' ? "Operatorlarning KPI ballarini kiriting." : 
-                 task.type === 'WEEKLY' ? "Kuryerlarning haftalik hisobotini tasdiqlang." : 
-                 "Yangi buyurtmalar CSV faylini yuklang."}
-              </p>
-            </div>
-            
-            <button 
-              onClick={() => setActiveTab(task.action)}
-              className="w-full mt-8 py-3 bg-primary text-white rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-accent hover:text-primary transition-all shadow-lg shadow-primary/20 active:scale-95"
-            >
-              Bajarish
-            </button>
-          </div>
-        ))}
-
-        {tasks.length === 0 && (
-          <div className="col-span-full py-20 text-center">
-            <div className="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-6 border border-emerald-100 shadow-sm">
-              <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-emerald-500"><polyline points="20 6 9 17 4 12"/></svg>
-            </div>
-            <h3 className="text-2xl font-black text-primary">Hammasi joyida!</h3>
-            <p className="text-secondary mt-2 font-medium">Hozircha bajariladigan vazifalar yo'q.</p>
-          </div>
-        )}
+      {/* Header */}
+      <div className="page-header">
+        <div>
+          <h2 className="page-title">Vazifalar</h2>
+          <p className="page-subtitle">Bugungi bajarilishi kerak bo'lgan ishlar</p>
+        </div>
+        <span className="badge bg-gray-100 text-secondary">
+          {tasks.length} ta vazifa
+        </span>
       </div>
+
+      {/* Cards */}
+      {tasks.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 stagger">
+          {tasks.map((task) => {
+            const cfg = typeConfig[task.type] ?? typeConfig['DAILY'];
+            return (
+              <div
+                key={task.id}
+                className="card card-hover p-6 flex flex-col gap-4"
+              >
+                {/* Top row */}
+                <div className="flex items-center justify-between">
+                  <span className={`badge ${cfg.bg} ${cfg.color}`}>
+                    {cfg.label}
+                  </span>
+                  <span className="text-xs text-secondary">{task.date}</span>
+                </div>
+
+                {/* Content */}
+                <div className="flex-1">
+                  <h3 className="font-bold text-primary text-base mb-1 leading-snug">{task.title}</h3>
+                  <p className="text-xs text-secondary leading-relaxed">{cfg.desc}</p>
+                </div>
+
+                {/* Action */}
+                <button
+                  onClick={() => setActiveTab(task.action)}
+                  className="btn-primary w-full text-center justify-center flex"
+                >
+                  Bajarish →
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="card py-24 flex flex-col items-center gap-4 text-center">
+          <div className="w-14 h-14 rounded-2xl bg-green-50 flex items-center justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24"
+              fill="none" stroke="currentColor" strokeWidth="2.5" className="text-green-500">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          </div>
+          <div>
+            <h3 className="font-bold text-primary text-lg">Hammasi joyida!</h3>
+            <p className="text-sm text-secondary mt-1">Hozircha bajariladigan vazifalar yo'q.</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

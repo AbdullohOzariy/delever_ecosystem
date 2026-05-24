@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import * as XLSX from 'xlsx';
 import { api } from '../api';
-import Dropdown from './ui/Dropdown';
 import Toast from './ui/Toast';
 
 interface Order {
@@ -18,6 +18,26 @@ interface Order {
 
 const EXPECTED_HEADER = "№,Ид.заказа,Оператор,Название филиала,Тип доставки,Курьер,Источник,Тип платежа,Цена заказа,Цена доставки,Новый заказ,Итоговое время";
 
+// Qo'shtirnoq ichidagi vergullarni to'g'ri ajratadi
+const parseCSVLine = (line: string): string[] => {
+  const result: string[] = [];
+  let current = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') {
+      inQuotes = !inQuotes;
+    } else if (ch === ',' && !inQuotes) {
+      result.push(current.trim());
+      current = '';
+    } else {
+      current += ch;
+    }
+  }
+  result.push(current.trim());
+  return result;
+};
+
 const defaultFilters = {
   dateStart: '',
   dateEnd: '',
@@ -32,6 +52,7 @@ const MasterDataView: React.FC = () => {
   const [isParsing, setIsParsing] = useState(false);
   const [search, setSearch] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const excelFileInputRef = useRef<HTMLInputElement>(null);
   const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' | 'info' } | null>(null);
   const [showHelp, setShowHelp] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
@@ -84,28 +105,44 @@ const MasterDataView: React.FC = () => {
         return;
       }
       const newOrders: any[] = [];
-      let errorCount = 0;
-      let firstError = '';
+      const errors: string[] = [];
       for (let i = 1; i < lines.length; i++) {
         const line = lines[i].trim();
         if (!line) continue;
-        const cols = line.split(',');
-        if (cols.length < 12) { errorCount++; if (!firstError) firstError = `${i+1}-qatorda ustunlar yetishmayapti`; continue; }
-        const amount = parseFloat(cols[8]);
-        if (isNaN(amount)) { errorCount++; if (!firstError) firstError = `${i+1}-qatorda 'Narx' noto'g'ri formatda`; continue; }
+        const cols = parseCSVLine(line);
+        if (cols.length < 12) {
+          errors.push(`${i+1}-qator: ustunlar yetishmayapti (${cols.length}/12)`);
+          continue;
+        }
+        const id = cols[1]?.trim();
+        if (!id) {
+          errors.push(`${i+1}-qator: ID bo'sh`);
+          continue;
+        }
+        const amountStr = cols[8]?.replace(/\s/g, '').replace(',', '.');
+        const amount = parseFloat(amountStr);
+        if (isNaN(amount)) {
+          errors.push(`${i+1}-qator: narx noto'g'ri ("${cols[8]}")`);
+          continue;
+        }
+        const deliveryPriceStr = cols[9]?.replace(/\s/g, '').replace(',', '.');
         newOrders.push({
-          id: cols[1]?.replace(/"/g, '').trim(),
-          operatorName: cols[2]?.replace(/"/g, '').trim(),
-          branch: cols[3]?.replace(/"/g, '').trim(),
-          deliveryType: cols[4]?.replace(/"/g, '').trim(),
-          courierName: cols[5]?.replace(/"/g, '').trim(),
+          id: String(id),
+          operatorName: cols[2]?.trim(),
+          branch: cols[3]?.trim(),
+          deliveryType: cols[4]?.trim(),
+          courierName: cols[5]?.trim(),
           amount,
-          deliveryPrice: parseFloat(cols[9]) || 0,
-          createdAt: cols[10]?.replace(/"/g, '').trim(),
-          deliveryTimeSeconds: parseTimeToSeconds(cols[11]?.replace(/"/g, '').trim())
+          deliveryPrice: parseFloat(deliveryPriceStr) || 0,
+          createdAt: cols[10]?.trim(),
+          deliveryTimeSeconds: parseTimeToSeconds(cols[11]?.trim())
         });
       }
-      if (errorCount > 0) setToast({ message: `Diqqat! ${errorCount} ta qator o'tkazib yuborildi. Xato: ${firstError}`, type: 'info' });
+      if (errors.length > 0) {
+        const shown = errors.slice(0, 3).join(' | ');
+        const extra = errors.length > 3 ? ` va yana ${errors.length - 3} ta` : '';
+        setToast({ message: `${errors.length} ta qator o'tkazildi: ${shown}${extra}`, type: 'info' });
+      }
       if (newOrders.length === 0) { setToast({ message: "Faylda yaroqli ma'lumot topilmadi.", type: 'error' }); return; }
       const response = await api.importOrders(newOrders);
       if (response.error) {
@@ -119,6 +156,86 @@ const MasterDataView: React.FC = () => {
     } finally {
       setIsParsing(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const processExcel = async (file: File) => {
+    setIsParsing(true);
+    try {
+      const buffer = await file.arrayBuffer();
+      const workbook = XLSX.read(buffer, { type: 'array' });
+      const sheetName = workbook.SheetNames[0];
+      const sheet = workbook.Sheets[sheetName];
+      const rows: any[][] = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+
+      if (rows.length < 2) {
+        setToast({ message: "Fayl bo'sh yoki noto'g'ri formatda!", type: 'error' });
+        return;
+      }
+
+      const headerRow = (rows[0] as string[]).map(h => String(h).trim());
+      const expectedCols = EXPECTED_HEADER.split(',');
+      if (headerRow.length < expectedCols.length) {
+        setToast({ message: `Excel sarlavhasi xato! Kutilgan: ${expectedCols.length} ta ustun, Kelgan: ${headerRow.length} ta`, type: 'error' });
+        return;
+      }
+
+      const newOrders: any[] = [];
+      const errors: string[] = [];
+
+      for (let i = 1; i < rows.length; i++) {
+        const cols = (rows[i] as any[]).map(c => String(c ?? '').trim());
+        if (cols.every(c => !c)) continue;
+        if (cols.length < 12) {
+          errors.push(`${i + 1}-qator: ustunlar yetishmayapti (${cols.length}/12)`);
+          continue;
+        }
+        const id = cols[1];
+        if (!id) {
+          errors.push(`${i + 1}-qator: ID bo'sh`);
+          continue;
+        }
+        const amountStr = cols[8].replace(/\s/g, '').replace(',', '.');
+        const amount = parseFloat(amountStr);
+        if (isNaN(amount)) {
+          errors.push(`${i + 1}-qator: narx noto'g'ri ("${cols[8]}")`);
+          continue;
+        }
+        const deliveryPriceStr = cols[9].replace(/\s/g, '').replace(',', '.');
+        newOrders.push({
+          id: String(id),
+          operatorName: cols[2],
+          branch: cols[3],
+          deliveryType: cols[4],
+          courierName: cols[5],
+          amount,
+          deliveryPrice: parseFloat(deliveryPriceStr) || 0,
+          createdAt: cols[10],
+          deliveryTimeSeconds: parseTimeToSeconds(cols[11])
+        });
+      }
+
+      if (errors.length > 0) {
+        const shown = errors.slice(0, 3).join(' | ');
+        const extra = errors.length > 3 ? ` va yana ${errors.length - 3} ta` : '';
+        setToast({ message: `${errors.length} ta qator o'tkazildi: ${shown}${extra}`, type: 'info' });
+      }
+      if (newOrders.length === 0) {
+        setToast({ message: "Faylda yaroqli ma'lumot topilmadi.", type: 'error' });
+        return;
+      }
+      const response = await api.importOrders(newOrders);
+      if (response.error) {
+        setToast({ message: `Yangi xodimlar topildi: ${response.newOperators?.length || 0} operator, ${response.newCouriers?.length || 0} kuryer. Xodimlar bo'limida yarating.`, type: 'info' });
+      } else {
+        setToast({ message: `Import yakunlandi! Qo'shildi: ${response.added}`, type: 'success' });
+        loadOrders();
+      }
+    } catch (error) {
+      setToast({ message: "Excel faylni o'qishda xatolik yuz berdi.", type: 'error' });
+    } finally {
+      setIsParsing(false);
+      if (excelFileInputRef.current) excelFileInputRef.current.value = '';
     }
   };
 
@@ -186,14 +303,13 @@ const MasterDataView: React.FC = () => {
 
   const branchOptions = uniqueBranches.map(b => ({ value: b, label: b === 'all' ? 'Barcha filiallar' : b }));
 
-  const inputCls = "w-full bg-background border border-transparent rounded-2xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent/30 transition-all text-primary placeholder-secondary/40";
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500 pb-20 px-4 md:px-0 relative">
+    <div className="space-y-5 animate-fadeIn pb-20 relative">
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
       {/* HEADER */}
-      <header className="bg-surface p-6 rounded-4xl shadow-soft border border-white/50">
+      <header className="card p-5">
         <div className="flex flex-col xl:flex-row xl:items-center gap-5">
           {/* Title + Search */}
           <div className="flex-1 flex flex-col sm:flex-row sm:items-center gap-4">
@@ -210,7 +326,7 @@ const MasterDataView: React.FC = () => {
               <input
                 type="text"
                 placeholder="ID, Operator, Kuryer bo'yicha qidirish..."
-                className={inputCls + " pl-11"}
+                className="input pl-11"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
@@ -225,26 +341,19 @@ const MasterDataView: React.FC = () => {
 
           {/* Action buttons */}
           <div className="flex flex-wrap items-center gap-2">
-            <button
-              onClick={() => setShowHelp(true)}
-              className="px-4 py-2.5 bg-background text-secondary rounded-xl text-xs font-black uppercase tracking-widest hover:bg-white transition-all flex items-center gap-1.5 border border-secondary/10 shadow-sm"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>
-              Yo'riqnoma
-            </button>
-
+            {/* Filtr toggle */}
             <button
               onClick={() => setShowFilters(!showFilters)}
-              className={`relative px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-1.5 border ${
+              className={`relative flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all border ${
                 showFilters || activeFilterCount > 0
-                  ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20'
-                  : 'bg-background text-secondary border-secondary/10 hover:bg-white shadow-sm'
+                  ? 'bg-primary text-white border-primary shadow-sm'
+                  : 'bg-white text-secondary border-border hover:border-gray-300 hover:text-primary'
               }`}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
-              Filtrlar
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+              Filtr
               {activeFilterCount > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-accent text-primary text-[10px] font-black rounded-full flex items-center justify-center border-2 border-surface">
+                <span className="w-4 h-4 bg-accent text-primary text-[9px] font-black rounded-full flex items-center justify-center">
                   {activeFilterCount}
                 </span>
               )}
@@ -253,38 +362,60 @@ const MasterDataView: React.FC = () => {
             {activeFilterCount > 0 && (
               <button
                 onClick={resetFilters}
-                className="px-4 py-2.5 bg-rose-50 text-rose-500 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-rose-100 transition-all flex items-center gap-1.5 border border-rose-100"
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-rose-500 bg-rose-50 border border-rose-100 hover:bg-rose-100 transition-all"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" x2="6" y1="6" y2="18"/><line x1="6" x2="18" y1="6" y2="18"/></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" x2="6" y1="6" y2="18"/><line x1="6" x2="18" y1="6" y2="18"/></svg>
                 Tozalash
               </button>
             )}
 
+            <div className="w-px h-6 bg-border mx-1" />
+
+            <button
+              onClick={() => setShowHelp(true)}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-secondary bg-white border border-border hover:border-gray-300 hover:text-primary transition-all"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>
+              Yo'riqnoma
+            </button>
+
             <input
-              type="file"
-              accept=".csv"
-              className="hidden"
-              ref={fileInputRef}
+              type="file" accept=".csv" className="hidden" ref={fileInputRef}
               onChange={(e) => {
                 const file = e.target.files?.[0]; if (!file) return;
                 const r = new FileReader(); r.onload = (ev) => processCSV(ev.target?.result as string); r.readAsText(file);
               }}
             />
+            <input
+              type="file" accept=".xlsx,.xls" className="hidden" ref={excelFileInputRef}
+              onChange={(e) => {
+                const file = e.target.files?.[0]; if (!file) return;
+                processExcel(file);
+              }}
+            />
             <button
               onClick={() => fileInputRef.current?.click()}
               disabled={isParsing}
-              className="px-5 py-2.5 bg-accent text-primary rounded-xl text-xs font-black uppercase tracking-widest hover:bg-accentHover transition-all flex items-center gap-1.5 shadow-lg shadow-accent/20 active:scale-95 disabled:opacity-60"
+              className="btn-accent flex items-center gap-2 disabled:opacity-50"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
               {isParsing ? 'Yuklanmoqda...' : 'CSV Yuklash'}
+            </button>
+            <button
+              onClick={() => excelFileInputRef.current?.click()}
+              disabled={isParsing}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-emerald-600 text-white hover:bg-emerald-700 transition-all disabled:opacity-50"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+              {isParsing ? 'Yuklanmoqda...' : 'Excel Yuklash'}
             </button>
 
             <button
               onClick={handleDeleteAll}
-              className="px-4 py-2.5 bg-rose-50 text-rose-600 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-rose-100 transition-all flex items-center gap-1.5 border border-rose-100"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-rose-500 bg-rose-50 border border-rose-100 hover:bg-rose-100 transition-all"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
-              Bazani tozalash
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+              Tozalash
             </button>
           </div>
         </div>
@@ -292,121 +423,103 @@ const MasterDataView: React.FC = () => {
 
       {/* FILTER PANEL */}
       {showFilters && (
-        <div className="bg-surface rounded-4xl border border-white/50 shadow-xl animate-in slide-in-from-top-2 duration-200 overflow-hidden">
-          <div className="px-6 py-4 border-b border-background flex items-center justify-between">
-            <span className="text-xs font-black text-secondary uppercase tracking-widest flex items-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
-              Kengaytirilgan filtr
-            </span>
-            {activeFilterCount > 0 && (
-              <button onClick={resetFilters} className="text-xs font-black text-rose-500 hover:text-rose-600 transition-colors flex items-center gap-1">
-                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" x2="6" y1="6" y2="18"/><line x1="6" x2="18" y1="6" y2="18"/></svg>
-                Barchasini tozalash
-              </button>
-            )}
-          </div>
+        <div className="card animate-fadeIn">
+          <div className="p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
 
-          <div className="p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            {/* Sana: boshlanish */}
-            <div className="space-y-2">
-              <label className="text-[10px] font-black text-secondary uppercase tracking-widest flex items-center gap-1.5">
-                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-                Boshlanish sanasi
-              </label>
+            {/* Sana boshlanish */}
+            <div className="space-y-1">
+              <label className="text-[11px] font-semibold text-secondary">Dan</label>
               <input
                 type="date"
-                className={inputCls}
+                className="input text-sm"
                 value={filters.dateStart}
                 onChange={(e) => setFilter('dateStart', e.target.value)}
               />
             </div>
 
-            {/* Sana: tugash */}
-            <div className="space-y-2">
-              <label className="text-[10px] font-black text-secondary uppercase tracking-widest flex items-center gap-1.5">
-                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-                Tugash sanasi
-              </label>
+            {/* Sana tugash */}
+            <div className="space-y-1">
+              <label className="text-[11px] font-semibold text-secondary">Gacha</label>
               <input
                 type="date"
-                className={inputCls}
+                className="input text-sm"
                 value={filters.dateEnd}
                 onChange={(e) => setFilter('dateEnd', e.target.value)}
               />
             </div>
 
             {/* Yetkazish turi */}
-            <div className="space-y-2">
-              <Dropdown
-                label="Yetkazish turi"
-                options={typeOptions}
+            <div className="space-y-1">
+              <label className="text-[11px] font-semibold text-secondary">Yetkazish turi</label>
+              <select
+                className="input text-sm"
                 value={filters.type}
-                onChange={(v) => setFilter('type', v)}
-              />
+                onChange={(e) => setFilter('type', e.target.value)}
+              >
+                {typeOptions.map(o => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+              </select>
             </div>
 
             {/* Filial */}
-            <div className="space-y-2">
-              <Dropdown
-                label="Filial"
-                options={branchOptions}
+            <div className="space-y-1">
+              <label className="text-[11px] font-semibold text-secondary">Filial</label>
+              <select
+                className="input text-sm"
                 value={filters.branch}
-                onChange={(v) => setFilter('branch', v)}
-              />
+                onChange={(e) => setFilter('branch', e.target.value)}
+              >
+                {branchOptions.map(o => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+              </select>
             </div>
 
-            {/* Narx: min */}
-            <div className="space-y-2">
-              <label className="text-[10px] font-black text-secondary uppercase tracking-widest flex items-center gap-1.5">
-                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-                Narx — dan (UZS)
-              </label>
+            {/* Narx min */}
+            <div className="space-y-1">
+              <label className="text-[11px] font-semibold text-secondary">Narx dan</label>
               <input
                 type="number"
                 placeholder="0"
-                className={inputCls}
+                className="input text-sm"
                 value={filters.priceMin}
                 onChange={(e) => setFilter('priceMin', e.target.value)}
               />
             </div>
 
-            {/* Narx: max */}
-            <div className="space-y-2">
-              <label className="text-[10px] font-black text-secondary uppercase tracking-widest flex items-center gap-1.5">
-                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-                Narx — gacha (UZS)
-              </label>
+            {/* Narx max */}
+            <div className="space-y-1">
+              <label className="text-[11px] font-semibold text-secondary">Narx gacha</label>
               <input
                 type="number"
                 placeholder="∞"
-                className={inputCls}
+                className="input text-sm"
                 value={filters.priceMax}
                 onChange={(e) => setFilter('priceMax', e.target.value)}
               />
             </div>
           </div>
 
-          {/* Active filter chips */}
+          {/* Active chips */}
           {activeFilterCount > 0 && (
-            <div className="px-6 pb-5 flex flex-wrap gap-2">
-              {search && (
-                <FilterChip label={`Qidiruv: "${search}"`} onRemove={() => setSearch('')} />
-              )}
+            <div className="px-5 pb-4 flex flex-wrap gap-2 border-t border-border pt-3">
+              {search && <FilterChip label={`"${search}"`} onRemove={() => setSearch('')} />}
               {(filters.dateStart || filters.dateEnd) && (
                 <FilterChip
-                  label={`Sana: ${filters.dateStart || '...'} → ${filters.dateEnd || '...'}`}
+                  label={`${filters.dateStart || '...'} → ${filters.dateEnd || '...'}`}
                   onRemove={() => setFilters(f => ({ ...f, dateStart: '', dateEnd: '' }))}
                 />
               )}
               {filters.type !== 'all' && (
-                <FilterChip label={`Turi: ${filters.type}`} onRemove={() => setFilter('type', 'all')} />
+                <FilterChip label={filters.type} onRemove={() => setFilter('type', 'all')} />
               )}
               {filters.branch !== 'all' && (
-                <FilterChip label={`Filial: ${filters.branch}`} onRemove={() => setFilter('branch', 'all')} />
+                <FilterChip label={filters.branch} onRemove={() => setFilter('branch', 'all')} />
               )}
               {(filters.priceMin || filters.priceMax) && (
                 <FilterChip
-                  label={`Narx: ${filters.priceMin || '0'} — ${filters.priceMax || '∞'} so'm`}
+                  label={`${filters.priceMin || '0'} — ${filters.priceMax || '∞'} so'm`}
                   onRemove={() => setFilters(f => ({ ...f, priceMin: '', priceMax: '' }))}
                 />
               )}
@@ -466,7 +579,7 @@ const MasterDataView: React.FC = () => {
       )}
 
       {/* TABLE */}
-      <div className="bg-surface rounded-4xl shadow-soft border border-white/50 overflow-hidden overflow-x-auto p-2">
+      <div className="card overflow-hidden">
         <table className="w-full text-left min-w-[1000px]">
           <thead className="bg-background text-secondary">
             <tr>
@@ -543,10 +656,15 @@ const MasterDataView: React.FC = () => {
 };
 
 const FilterChip: React.FC<{ label: string; onRemove: () => void }> = ({ label, onRemove }) => (
-  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary/8 text-primary text-[11px] font-bold rounded-full border border-primary/15">
+  <span className="inline-flex items-center gap-1 pl-2.5 pr-1.5 py-1 bg-gray-100 text-primary text-xs font-medium rounded-lg border border-border">
     {label}
-    <button onClick={onRemove} className="hover:text-rose-500 transition-colors ml-0.5">
-      <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><line x1="18" x2="6" y1="6" y2="18"/><line x1="6" x2="18" y1="6" y2="18"/></svg>
+    <button
+      onClick={onRemove}
+      className="w-4 h-4 rounded flex items-center justify-center text-secondary hover:text-rose-500 hover:bg-rose-50 transition-colors ml-0.5"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+        <line x1="18" x2="6" y1="6" y2="18"/><line x1="6" x2="18" y1="6" y2="18"/>
+      </svg>
     </button>
   </span>
 );

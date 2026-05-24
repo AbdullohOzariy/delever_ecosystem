@@ -82,10 +82,14 @@ function chunkArray<T>(array: T[], size: number): T[][] {
 
 const parseDate = (dateStr: string) => {
   if (!dateStr) return new Date();
+  // ISO format
   if (dateStr.includes('T')) return new Date(dateStr);
+  // "YYYY-MM-DD HH:MM:SS" — Delever CSV formati (UTC+5 Toshkent vaqti)
   const [datePart, timePart] = dateStr.split(' ');
-  if (!datePart || !timePart) return new Date(dateStr);
-  return new Date(`${datePart}T${timePart}`);
+  if (!datePart || !timePart) return new Date();
+  // +05:00 offset qo'shib to'g'ri UTC ga o'girish
+  const d = new Date(`${datePart}T${timePart}+05:00`);
+  return isNaN(d.getTime()) ? new Date() : d;
 };
 
 const transliterate = (text: string) => {
@@ -364,10 +368,13 @@ app.post('/api/orders/import', async (req, res) => {
       userMap.clear();
       allUsers.forEach(u => {
         const cleanName = cleanString(u.fullName);
+        // To'liq ism bilan
         userMap.set(cleanName, u.id);
-        const parts = cleanName.split(' ');
-        if (parts.length > 0) userMap.set(parts[0], u.id);
-        if (parts.length > 1) userMap.set(parts[1], u.id);
+        // Birinchi so'z (ism) bilan — faqat 4+ harfli bo'lsa (noyob bo'lsin)
+        const parts = cleanName.split(' ').filter(p => p.length >= 4);
+        parts.forEach(part => {
+          if (!userMap.has(part)) userMap.set(part, u.id);
+        });
       });
     };
     updateMap();

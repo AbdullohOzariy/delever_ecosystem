@@ -166,53 +166,83 @@ const App: React.FC = () => {
 
   if (authLoading) return (
     <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="animate-spin rounded-full h-12 w-12 border-4 border-accent border-t-transparent"></div>
+      <div className="flex flex-col items-center gap-4">
+        <div className="w-12 h-12 bg-accent rounded-2xl flex items-center justify-center text-primary font-black text-2xl shadow-card animate-pulse">D</div>
+        <div className="w-6 h-6 border-2 border-primary/20 border-t-primary rounded-full animate-spin" />
+      </div>
     </div>
   );
 
   if (!currentUser) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-4 relative overflow-hidden">
-        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-accent/20 rounded-full blur-[150px]"></div>
-        
-        <div className="w-full max-w-sm bg-surface rounded-4xl shadow-soft p-10 relative z-10 border border-white/50">
-          <div className="text-center mb-10">
-            <div className="w-16 h-16 bg-accent rounded-2xl mx-auto flex items-center justify-center text-primary font-black text-3xl mb-6 shadow-lg shadow-accent/30">
-              D
+      <div className="min-h-screen flex bg-background">
+        {/* Left panel — branding */}
+        <div className="hidden lg:flex w-[45%] bg-primary flex-col justify-between p-12 relative overflow-hidden">
+          <div className="absolute inset-0 opacity-5"
+            style={{ backgroundImage: 'radial-gradient(circle at 20% 80%, #B4F481 0%, transparent 50%), radial-gradient(circle at 80% 20%, #B4F481 0%, transparent 50%)' }}
+          />
+          <div className="relative z-10">
+            <div className="flex items-center gap-3 mb-16">
+              <div className="w-10 h-10 bg-accent rounded-xl flex items-center justify-center text-primary font-black text-xl">D</div>
+              <span className="text-white font-bold text-lg tracking-tight">Delever</span>
             </div>
-            <h1 className="text-3xl font-black text-primary tracking-tight mb-2">Xush kelibsiz</h1>
-            <p className="text-secondary font-medium text-sm">Delever Ekotizimi</p>
-            {isTelegram && <p className="text-accent font-bold text-xs mt-4 bg-accent/10 py-1 px-3 rounded-full inline-block">Telegram orqali</p>}
+            <h2 className="text-4xl font-black text-white leading-tight mb-4">
+              Ekotizim<br />boshqaruvi
+            </h2>
+            <p className="text-white/50 text-sm leading-relaxed max-w-xs">
+              Operatorlar, kuryerlar va kassa — barchasi bir joyda.
+            </p>
           </div>
-          
-          <form onSubmit={handleLogin} className="space-y-5">
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-secondary uppercase tracking-widest ml-1">Login</label>
-              <input 
-                name="username" 
-                type="text" 
-                required 
-                className="w-full px-5 py-4 rounded-2xl bg-background border-none text-primary placeholder-secondary/50 outline-none focus:ring-2 focus:ring-accent/50 transition-all font-medium" 
-                placeholder="admin" 
-              />
+          <p className="relative z-10 text-white/25 text-xs">© 2026 Delever</p>
+        </div>
+
+        {/* Right panel — login form */}
+        <div className="flex-1 flex items-center justify-center p-6">
+          <div className="w-full max-w-sm animate-scaleIn">
+            {/* Mobile logo */}
+            <div className="flex items-center gap-3 mb-10 lg:hidden">
+              <div className="w-9 h-9 bg-accent rounded-xl flex items-center justify-center text-primary font-black text-lg">D</div>
+              <span className="font-bold text-primary text-lg">Delever</span>
             </div>
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-secondary uppercase tracking-widest ml-1">Parol</label>
-              <input 
-                name="password" 
-                type="password" 
-                required 
-                className="w-full px-5 py-4 rounded-2xl bg-background border-none text-primary placeholder-secondary/50 outline-none focus:ring-2 focus:ring-accent/50 transition-all font-medium" 
-                placeholder="••••••••" 
-              />
+
+            <div className="mb-8">
+              <h1 className="text-2xl font-black text-primary mb-1">Kirish</h1>
+              <p className="text-secondary text-sm">
+                {isTelegram ? 'Telegram orqali ulanish' : 'Hisobingizga kiring'}
+              </p>
             </div>
-            <button 
-              type="submit" 
-              className="w-full py-4 bg-accent hover:bg-accentHover text-primary font-bold rounded-2xl transition-all shadow-lg shadow-accent/20 active:scale-[0.98] mt-4"
-            >
-              {isTelegram ? 'Bog\'lash va Kirish' : 'Kirish'}
-            </button>
-          </form>
+
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-secondary">Login</label>
+                <input
+                  name="username"
+                  type="text"
+                  required
+                  className="input"
+                  placeholder="username"
+                  autoComplete="username"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-secondary">Parol</label>
+                <input
+                  name="password"
+                  type="password"
+                  required
+                  className="input"
+                  placeholder="••••••••"
+                  autoComplete="current-password"
+                />
+              </div>
+              <button
+                type="submit"
+                className="w-full mt-2 py-3 bg-primary text-white font-bold rounded-xl text-sm transition-all hover:bg-primary/90 active:scale-[0.98] shadow-sm"
+              >
+                {isTelegram ? "Bog'lash va Kirish" : 'Kirish →'}
+              </button>
+            </form>
+          </div>
         </div>
       </div>
     );
@@ -236,7 +266,7 @@ const App: React.FC = () => {
         theme={theme}
         toggleTheme={toggleTheme}
       />
-      <main className="flex-1 p-6 lg:p-10 w-full max-w-[1920px] mx-auto">
+      <main className="flex-1 px-4 py-6 md:px-8 md:py-8 w-full max-w-screen-2xl mx-auto">
         {activeTab === 'checklist' && <AdminChecklist setActiveTab={handleTabChange} />}
 
         {activeTab === 'kpi' && <KPIView user={currentUser} />}
