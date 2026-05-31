@@ -1,11 +1,17 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { PrismaClient, OrderStatus, AttendanceStatus } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
 dotenv.config();
+
+// ESM da __dirname o'rnini bosish
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 const prisma = new PrismaClient();
@@ -1249,7 +1255,19 @@ app.get('/api/admin/checklist', async (req, res) => {
   } catch (error) { res.status(500).json({ error: "Checklist olishda xatolik" }); }
 });
 
-app.listen(PORT, async () => {
+// ---------------------------------------------------------
+// STATIK FRONTEND (Vite build) — single-service deploy
+// Barcha /api route'lardan KEYIN turishi shart
+// ---------------------------------------------------------
+const distPath = path.join(__dirname, '..', 'dist');
+app.use(express.static(distPath));
+
+// SPA fallback: /api bo'lmagan barcha so'rovlar uchun index.html
+app.get(/^(?!\/api).*/, (_req, res) => {
+  res.sendFile(path.join(distPath, 'index.html'));
+});
+
+app.listen(Number(PORT), '0.0.0.0', async () => {
   console.log(`🚀 Server ${PORT}-portda ishga tushdi`);
   await initDefaultAdmin();
 });

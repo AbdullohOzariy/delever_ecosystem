@@ -5,8 +5,11 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  // Neon: pooled connection (pgbouncer) — runtime so'rovlar uchun
+  url       = env("DATABASE_URL")
+  // Neon: direct connection — migration/introspection uchun
+  directUrl = env("DIRECT_URL")
 }
 
 // ---------------------------------------------------------
