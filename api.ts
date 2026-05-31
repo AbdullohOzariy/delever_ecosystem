@@ -6,7 +6,8 @@ export const API_URL = import.meta.env.PROD ? '/api' : 'http://localhost:3001/ap
 
 // Har bir so'rovga JWT tokenni qo'shadigan fetch wrapper.
 // 401 (token yaroqsiz/muddati tugagan) bo'lsa — sessiyani tozalab, login'ga qaytaradi.
-const authFetch = async (url: string, options: RequestInit = {}): Promise<Response> => {
+// Komponentlar ham (api.ts'dan tashqari) shu wrapper orqali so'rov yuborishi kerak.
+export const authFetch = async (url: string, options: RequestInit = {}): Promise<Response> => {
   const token = localStorage.getItem('token');
   const headers: Record<string, string> = { ...(options.headers as Record<string, string> | undefined) };
   if (token) headers['Authorization'] = `Bearer ${token}`;

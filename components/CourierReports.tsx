@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { User } from '../types';
-import { api, API_URL } from '../api';
+import { api, API_URL, authFetch } from '../api';
 
 interface CourierReportsProps {
   user: User;
@@ -62,7 +62,7 @@ const CourierReports: React.FC<CourierReportsProps> = ({ user }) => {
         const monday = getDateFromWeek(week);
         const dateStr = monday.toISOString().slice(0, 10);
         
-        const res = await fetch(`${API_URL}/kpi/report/${user.id}?period=weekly&week=${dateStr}`);
+        const res = await authFetch(`${API_URL}/kpi/report/${user.id}?period=weekly&week=${dateStr}`);
         data = await res.json();
       } else {
         data = await api.getKPIReport(user.id, month);

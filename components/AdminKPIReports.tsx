@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { User, UserRole } from '../types';
-import { api, API_URL } from '../api';
+import { api, API_URL, authFetch } from '../api';
 import Toast from './ui/Toast';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -83,7 +83,7 @@ const AdminKPIReports: React.FC<AdminKPIReportsProps> = ({ users }) => {
           if (activeRole === UserRole.COURIER) {
             const monday = getDateFromWeek(week);
             const dateStr = monday.toISOString().slice(0, 10);
-            const res = await fetch(`${API_URL}/kpi/report/${user.id}?period=weekly&week=${dateStr}`);
+            const res = await authFetch(`${API_URL}/kpi/report/${user.id}?period=weekly&week=${dateStr}`);
             data = await res.json();
           } else {
             data = await api.getKPIReport(user.id, month);
