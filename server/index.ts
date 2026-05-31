@@ -914,25 +914,23 @@ app.get('/api/kpi/report/:userId', async (req, res) => {
       return res.status(400).json({ error: "Davr ko'rsatilmagan" });
     }
 
-    // DEBUG: Sana oralig'ini log qilish
-    console.log(`KPI Report for ${userId}:`, startDate.toISOString(), endDate.toISOString());
+    const isWeekly = period === 'weekly' && !!week;
 
-    const user = await prisma.user.findUnique({ where: { id: userId } });
+    // Mustaqil so'rovlarni parallel bajaramiz (ketma-ket kechikishni kamaytirish uchun)
+    const [user, dailyKPIs, existingPayment] = await Promise.all([
+      prisma.user.findUnique({ where: { id: userId } }),
+      prisma.dailyKPI.findMany({ where: { userId, date: { gte: startDate, lte: endDate } } }),
+      isWeekly
+        ? prisma.payment.findFirst({ where: { userId, period: String(week), frequency: 'WEEKLY' } })
+        : Promise.resolve(null),
+    ]);
+
     if (!user) return res.status(404).json({ error: "User topilmadi" });
 
-    const dailyKPIs = await prisma.dailyKPI.findMany({ where: { userId, date: { gte: startDate, lte: endDate } } });
-    
-    // Payment borligini tekshirish (isConfirmed uchun)
-    let isConfirmed = false;
-    if (period === 'weekly' && week) {
-      const payment = await prisma.payment.findFirst({
-        where: { userId, period: String(week), frequency: 'WEEKLY' }
-      });
-      if (payment) isConfirmed = true;
-    }
+    const isConfirmed = !!existingPayment;
 
-    let orderFilter: any = {
-      createdAt: { gte: startDate, lte: endDate }, 
+    const orderFilter: any = {
+      createdAt: { gte: startDate, lte: endDate },
       status: 'DELIVERED',
     };
 
@@ -947,9 +945,6 @@ app.get('/api/kpi/report/:userId', async (req, res) => {
     }
 
     const orders = await prisma.order.findMany({ where: orderFilter });
-    
-    // DEBUG: Topilgan buyurtmalar soni
-    console.log(`Orders found: ${orders.length}`);
 
     if (user.role === 'COURIER') {
       let totalEarnings = 0;
