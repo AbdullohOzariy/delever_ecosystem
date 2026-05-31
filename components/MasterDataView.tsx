@@ -38,6 +38,55 @@ const parseCSVLine = (line: string): string[] => {
   return result;
 };
 
+// ---------------------------------------------------------
+// USTUNLARNI SARLAVHA NOMI BO'YICHA TOPISH
+// Fayl shablon.xlsx kabi kelishi mumkin — tizim kerakli ustunlarni
+// nomi bo'yicha qidirib topadi, ortiqcha ustunlarni e'tiborsiz qoldiradi.
+// Ustun tartibi muhim emas.
+// ---------------------------------------------------------
+const COLUMN_ALIASES: Record<string, string[]> = {
+  id:                  ['ид заказа', 'ид.заказа', 'идзаказа', 'id заказа', 'order id', 'orderid', 'идентификатор'],
+  operatorName:        ['оператор', 'operator'],
+  branch:              ['название филиала', 'филиал', 'branch', 'магазин'],
+  deliveryType:        ['тип доставки', 'доставка', 'delivery type'],
+  courierName:         ['курьер', 'courier', 'kuryer'],
+  amount:              ['цена заказа', 'сумма заказа', 'сумма', 'order amount', 'amount'],
+  deliveryPrice:       ['цена доставки', 'стоимость доставки', 'delivery price'],
+  createdAt:           ['новый заказ', 'дата заказа', 'дата', 'date', 'created', 'время заказа'],
+  deliveryTimeSeconds: ['итоговое время', 'время доставки', 'время', 'duration', 'time'],
+};
+
+// Faylsiz import bo'lmaydigan majburiy maydonlar
+const REQUIRED_FIELDS = ['id', 'amount'];
+
+const normalizeHeader = (h: any): string =>
+  String(h ?? '')
+    .toLowerCase()
+    .replace(/^﻿/, '')
+    .replace(/[._]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+// Sarlavha qatoridan har bir maydon uchun ustun indeksini topadi.
+const resolveColumns = (headerRow: any[]): { index: Record<string, number>; missing: string[] } => {
+  const normHeaders = headerRow.map(normalizeHeader);
+  const index: Record<string, number> = {};
+
+  for (const field of Object.keys(COLUMN_ALIASES)) {
+    const aliases = COLUMN_ALIASES[field].map(normalizeHeader);
+    // 1) Aniq moslik
+    let found = normHeaders.findIndex(h => h && aliases.includes(h));
+    // 2) Qisman moslik (sarlavha alias'ni o'z ichiga oladi yoki aksincha)
+    if (found === -1) {
+      found = normHeaders.findIndex(h => h && aliases.some(a => h.includes(a) || a.includes(h)));
+    }
+    index[field] = found;
+  }
+
+  const missing = REQUIRED_FIELDS.filter(f => index[f] === -1);
+  return { index, missing };
+};
+
 const defaultFilters = {
   dateStart: '',
   dateEnd: '',
@@ -93,49 +142,47 @@ const MasterDataView: React.FC = () => {
         setToast({ message: "Fayl bo'sh yoki noto'g'ri formatda!", type: 'error' });
         return;
       }
-      const cleanHeader = lines[0].trim().replace(/^\uFEFF/, '');
-      if (cleanHeader !== EXPECTED_HEADER) {
-        const expectedCols = EXPECTED_HEADER.split(',');
-        const actualCols = cleanHeader.split(',');
-        if (actualCols.length !== expectedCols.length) {
-          setToast({ message: `CSV sarlavhasi xato! Kutilgan: ${expectedCols.length} ta ustun, Kelgan: ${actualCols.length} ta`, type: 'error' });
-        } else {
-          setToast({ message: "CSV sarlavhasi shablonga mos kelmadi.", type: 'error' });
-        }
+      const headerCols = parseCSVLine(lines[0].trim().replace(/^\uFEFF/, ''));
+      const { index, missing } = resolveColumns(headerCols);
+      if (missing.length > 0) {
+        setToast({ message: `CSV'da kerakli ustun(lar) topilmadi: ${missing.join(', ')}`, type: 'error' });
         return;
       }
+
+      const get = (cols: any[], field: string): string => {
+        const i = index[field];
+        return i >= 0 ? String(cols[i] ?? '').trim() : '';
+      };
+
       const newOrders: any[] = [];
       const errors: string[] = [];
       for (let i = 1; i < lines.length; i++) {
         const line = lines[i].trim();
         if (!line) continue;
         const cols = parseCSVLine(line);
-        if (cols.length < 12) {
-          errors.push(`${i+1}-qator: ustunlar yetishmayapti (${cols.length}/12)`);
-          continue;
-        }
-        const id = cols[1]?.trim();
+
+        const id = get(cols, 'id');
         if (!id) {
           errors.push(`${i+1}-qator: ID bo'sh`);
           continue;
         }
-        const amountStr = cols[8]?.replace(/\s/g, '').replace(',', '.');
+        const amountStr = get(cols, 'amount').replace(/\s/g, '').replace(',', '.');
         const amount = parseFloat(amountStr);
         if (isNaN(amount)) {
-          errors.push(`${i+1}-qator: narx noto'g'ri ("${cols[8]}")`);
+          errors.push(`${i+1}-qator: narx noto'g'ri ("${get(cols, 'amount')}")`);
           continue;
         }
-        const deliveryPriceStr = cols[9]?.replace(/\s/g, '').replace(',', '.');
+        const deliveryPriceStr = get(cols, 'deliveryPrice').replace(/\s/g, '').replace(',', '.');
         newOrders.push({
           id: String(id),
-          operatorName: cols[2]?.trim(),
-          branch: cols[3]?.trim(),
-          deliveryType: cols[4]?.trim(),
-          courierName: cols[5]?.trim(),
+          operatorName: get(cols, 'operatorName'),
+          branch: get(cols, 'branch'),
+          deliveryType: get(cols, 'deliveryType'),
+          courierName: get(cols, 'courierName'),
           amount,
           deliveryPrice: parseFloat(deliveryPriceStr) || 0,
-          createdAt: cols[10]?.trim(),
-          deliveryTimeSeconds: parseTimeToSeconds(cols[11]?.trim())
+          createdAt: get(cols, 'createdAt'),
+          deliveryTimeSeconds: parseTimeToSeconds(get(cols, 'deliveryTimeSeconds'))
         });
       }
       if (errors.length > 0) {
@@ -173,45 +220,47 @@ const MasterDataView: React.FC = () => {
         return;
       }
 
-      const headerRow = (rows[0] as string[]).map(h => String(h).trim());
-      const expectedCols = EXPECTED_HEADER.split(',');
-      if (headerRow.length < expectedCols.length) {
-        setToast({ message: `Excel sarlavhasi xato! Kutilgan: ${expectedCols.length} ta ustun, Kelgan: ${headerRow.length} ta`, type: 'error' });
+      const headerRow = rows[0] as any[];
+      const { index, missing } = resolveColumns(headerRow);
+      if (missing.length > 0) {
+        setToast({ message: `Excel'da kerakli ustun(lar) topilmadi: ${missing.join(', ')}`, type: 'error' });
         return;
       }
+
+      const get = (cols: any[], field: string): string => {
+        const i = index[field];
+        return i >= 0 ? String(cols[i] ?? '').trim() : '';
+      };
 
       const newOrders: any[] = [];
       const errors: string[] = [];
 
       for (let i = 1; i < rows.length; i++) {
-        const cols = (rows[i] as any[]).map(c => String(c ?? '').trim());
-        if (cols.every(c => !c)) continue;
-        if (cols.length < 12) {
-          errors.push(`${i + 1}-qator: ustunlar yetishmayapti (${cols.length}/12)`);
-          continue;
-        }
-        const id = cols[1];
+        const cols = rows[i] as any[];
+        if (!cols || cols.every(c => !String(c ?? '').trim())) continue;
+
+        const id = get(cols, 'id');
         if (!id) {
           errors.push(`${i + 1}-qator: ID bo'sh`);
           continue;
         }
-        const amountStr = cols[8].replace(/\s/g, '').replace(',', '.');
+        const amountStr = get(cols, 'amount').replace(/\s/g, '').replace(',', '.');
         const amount = parseFloat(amountStr);
         if (isNaN(amount)) {
-          errors.push(`${i + 1}-qator: narx noto'g'ri ("${cols[8]}")`);
+          errors.push(`${i + 1}-qator: narx noto'g'ri ("${get(cols, 'amount')}")`);
           continue;
         }
-        const deliveryPriceStr = cols[9].replace(/\s/g, '').replace(',', '.');
+        const deliveryPriceStr = get(cols, 'deliveryPrice').replace(/\s/g, '').replace(',', '.');
         newOrders.push({
           id: String(id),
-          operatorName: cols[2],
-          branch: cols[3],
-          deliveryType: cols[4],
-          courierName: cols[5],
+          operatorName: get(cols, 'operatorName'),
+          branch: get(cols, 'branch'),
+          deliveryType: get(cols, 'deliveryType'),
+          courierName: get(cols, 'courierName'),
           amount,
           deliveryPrice: parseFloat(deliveryPriceStr) || 0,
-          createdAt: cols[10],
-          deliveryTimeSeconds: parseTimeToSeconds(cols[11])
+          createdAt: get(cols, 'createdAt'),
+          deliveryTimeSeconds: parseTimeToSeconds(get(cols, 'deliveryTimeSeconds'))
         });
       }
 

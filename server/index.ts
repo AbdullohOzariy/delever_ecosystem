@@ -103,17 +103,22 @@ const requireAdmin = requireRole('ADMIN');
 // UTILS
 // ---------------------------------------------------------
 
-// Haftalik hisobot logikasi (Dushanba - Yakshanba)
-const getWeekRange = (dateStr: string) => {
-  const date = new Date(dateStr);
-  const start = new Date(date);
-  start.setHours(0, 0, 0, 0);
+// Haftalik hisobot oralig'i (Dushanba 00:00 - Yakshanba 23:59).
+// Kirish: "YYYY-MM-DD" (Dushanba sanasi) yoki "YYYY-Www" (ISO hafta).
+const getWeekRange = (input: string) => {
+  const start = input.includes('-W')
+    ? getWeekStartFromWeekString(input)
+    : new Date(input);
 
+  if (isNaN(start.getTime())) {
+    throw new Error(`Noto'g'ri hafta formati: ${input}`);
+  }
+
+  start.setHours(0, 0, 0, 0);
   const end = new Date(start);
-  end.setDate(start.getDate() + 6); 
+  end.setDate(start.getDate() + 6);
   end.setHours(23, 59, 59, 999);
 
-  console.log(`Week Range for ${dateStr}:`, start.toISOString(), end.toISOString()); 
   return { start, end };
 };
 
@@ -272,6 +277,38 @@ const KPI_RULES = {
 };
 
 // ---------------------------------------------------------
+// HAFTALIK TO'LOV HISOBI (yagona manba)
+// confirm va confirm-all bir xil mantiqdan foydalanishi uchun.
+// ---------------------------------------------------------
+type PayoutOrder = { deliveryPrice: any; amount: any; deliveryTimeSeconds: number | null };
+type PayoutKPI = { bonusAmount: any };
+
+const calculateWeeklyPayout = (role: string, orders: PayoutOrder[], dailyKPIs: PayoutKPI[]): number => {
+  let total = 0;
+
+  if (role === 'COURIER') {
+    orders.forEach(o => {
+      const price = Math.round(Number(o.deliveryPrice));
+      total += price;
+      // Tezkor yetkazish bonusi (< 30 daqiqa)
+      if (o.deliveryTimeSeconds && o.deliveryTimeSeconds < 1800) total += 1000;
+      // 8000/10000 lik buyurtmalar uchun qo'shimcha bonus
+      if (price === 8000 || price === 10000) total += 1000;
+    });
+  } else {
+    // Operator: yetkazilgan buyurtmalar summasidan 1% komissiya
+    orders.forEach(o => {
+      total += Number(o.amount) * 0.01;
+    });
+  }
+
+  // Qo'lda kiritilgan haftalik bonuslar
+  dailyKPIs.forEach(k => { total += Number(k.bonusAmount); });
+
+  return total;
+};
+
+// ---------------------------------------------------------
 // AUTH & INIT
 // ---------------------------------------------------------
 const initDefaultAdmin = async () => {
@@ -375,17 +412,22 @@ app.post('/api/auth/telegram', async (req, res) => {
 
 // GET Users (Filtr bilan)
 app.get('/api/users', requireAdmin, async (req, res) => {
-  const { status } = req.query; 
-  
-  const where: any = {};
-  if (status) where.status = status;
+  try {
+    const { status } = req.query;
 
-  const users = await prisma.user.findMany({
-    where,
-    select: { id: true, username: true, fullName: true, role: true, status: true, telegramId: true, createdAt: true },
-    orderBy: { createdAt: 'desc' }
-  });
-  res.json(users);
+    const where: any = {};
+    if (status) where.status = status;
+
+    const users = await prisma.user.findMany({
+      where,
+      select: { id: true, username: true, fullName: true, role: true, status: true, telegramId: true, createdAt: true },
+      orderBy: { createdAt: 'desc' }
+    });
+    res.json(users);
+  } catch (error) {
+    console.error("Foydalanuvchilarni olishda xatolik:", error);
+    res.status(500).json({ error: "Foydalanuvchilarni olishda xatolik" });
+  }
 });
 
 // UPDATE User
@@ -548,24 +590,29 @@ app.post('/api/orders/import', requireAdmin, async (req, res) => {
 });
 
 app.get('/api/orders', async (req, res) => {
-  const page = Math.max(1, parseInt(req.query.page as string) || 1);
-  const limit = Math.min(500, Math.max(1, parseInt(req.query.limit as string) || 200));
-  const skip = (page - 1) * limit;
+  try {
+    const page = Math.max(1, parseInt(req.query.page as string) || 1);
+    const limit = Math.min(500, Math.max(1, parseInt(req.query.limit as string) || 200));
+    const skip = (page - 1) * limit;
 
-  const [orders, total] = await Promise.all([
-    prisma.order.findMany({
-      include: {
-        operator: { select: userSafeSelect },
-        courier: { select: userSafeSelect },
-      },
-      orderBy: { createdAt: 'desc' },
-      skip,
-      take: limit,
-    }),
-    prisma.order.count(),
-  ]);
+    const [orders, total] = await Promise.all([
+      prisma.order.findMany({
+        include: {
+          operator: { select: userSafeSelect },
+          courier: { select: userSafeSelect },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      prisma.order.count(),
+    ]);
 
-  res.json({ orders, total, page, limit, totalPages: Math.ceil(total / limit) });
+    res.json({ orders, total, page, limit, totalPages: Math.ceil(total / limit) });
+  } catch (error) {
+    console.error("Buyurtmalarni olishda xatolik:", error);
+    res.status(500).json({ error: "Buyurtmalarni olishda xatolik" });
+  }
 });
 
 app.delete('/api/orders', requireAdmin, async (req, res) => {
@@ -609,9 +656,14 @@ app.post('/api/schedule/generate', requireAdmin, async (req, res) => {
 });
 
 app.get('/api/schedule/:userId', async (req, res) => {
-  const { userId } = req.params;
-  const schedule = await prisma.workSchedule.findMany({ where: { userId }, orderBy: { date: 'asc' } });
-  res.json(schedule);
+  try {
+    const { userId } = req.params;
+    const schedule = await prisma.workSchedule.findMany({ where: { userId }, orderBy: { date: 'asc' } });
+    res.json(schedule);
+  } catch (error) {
+    console.error("Grafikni olishda xatolik:", error);
+    res.status(500).json({ error: "Grafikni olishda xatolik" });
+  }
 });
 
 app.post('/api/kpi/daily', requireAdmin, async (req, res) => {
@@ -703,26 +755,7 @@ app.post('/api/kpi/confirm', requireAdmin, async (req, res) => {
       where: { userId, date: { gte: range.start, lte: range.end } }
     });
 
-    let totalAmount = 0;
-
-    if (isCourier) {
-      orders.forEach(o => {
-        totalAmount += Number(o.deliveryPrice);
-        if (o.deliveryTimeSeconds && o.deliveryTimeSeconds < 1800) totalAmount += 1000;
-        if (Number(o.deliveryPrice) === 8000 || Number(o.deliveryPrice) === 10000) {
-          totalAmount += 1000;
-        }
-      });
-    } else {
-      // Operator uchun: har bir yetkazilgan buyurtma uchun hisoblash
-      orders.forEach(o => {
-        totalAmount += Number(o.amount) * 0.01; // 1% komisyon
-      });
-    }
-
-    dailyKPIs.forEach(k => {
-      totalAmount += Number(k.bonusAmount);
-    });
+    const totalAmount = calculateWeeklyPayout(targetUser.role, orders, dailyKPIs);
 
     if (totalAmount > 0) {
       await prisma.payment.create({
@@ -794,26 +827,7 @@ app.post('/api/kpi/confirm-all', requireAdmin, async (req, res) => {
           where: { userId: user.id, date: { gte: range.start, lte: range.end } }
         });
 
-        let totalAmount = 0;
-
-        if (role === 'COURIER') {
-          orders.forEach(o => {
-            totalAmount += Number(o.deliveryPrice);
-            if (o.deliveryTimeSeconds && o.deliveryTimeSeconds < 1800) totalAmount += 1000;
-            if (Number(o.deliveryPrice) === 8000 || Number(o.deliveryPrice) === 10000) {
-              totalAmount += 1000;
-            }
-          });
-        } else {
-          // Operator uchun: har bir yetkazilgan buyurtma uchun hisoblash
-          orders.forEach(o => {
-            totalAmount += Number(o.amount) * 0.01; // 1% komisyon
-          });
-        }
-        
-        dailyKPIs.forEach(k => {
-          totalAmount += Number(k.bonusAmount);
-        });
+        const totalAmount = calculateWeeklyPayout(user.role, orders, dailyKPIs);
 
         if (totalAmount > 0) {
           // To'lov yaratish (agar oldin yaratilmagan bo'lsa)
@@ -1325,6 +1339,11 @@ app.get('/api/admin/checklist', requireAdmin, async (req, res) => {
   } catch (error) { res.status(500).json({ error: "Checklist olishda xatolik" }); }
 });
 
+// Noma'lum /api yo'llari — HTML emas, JSON 404 qaytarsin
+app.use('/api', (_req, res) => {
+  res.status(404).json({ error: "Endpoint topilmadi" });
+});
+
 // ---------------------------------------------------------
 // STATIK FRONTEND (Vite build) — single-service deploy
 // Barcha /api route'lardan KEYIN turishi shart
@@ -1335,6 +1354,24 @@ app.use(express.static(distPath));
 // SPA fallback: /api bo'lmagan barcha so'rovlar uchun index.html
 app.get(/^(?!\/api).*/, (_req, res) => {
   res.sendFile(path.join(distPath, 'index.html'));
+});
+
+// ---------------------------------------------------------
+// GLOBAL ERROR HANDLER — oxirgi himoya qatlami
+// (route ichida ushlanmagan/next(err) bo'lgan xatolar uchun)
+// ---------------------------------------------------------
+app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  console.error("Kutilmagan server xatosi:", err);
+  if (res.headersSent) return;
+  res.status(500).json({ error: "Ichki server xatosi" });
+});
+
+// Process darajasidagi himoya — jarayon yiqilib qolmasligi uchun
+process.on('unhandledRejection', (reason) => {
+  console.error("Ushlanmagan Promise rad etishi:", reason);
+});
+process.on('uncaughtException', (err) => {
+  console.error("Ushlanmagan istisno:", err);
 });
 
 app.listen(Number(PORT), '0.0.0.0', async () => {
