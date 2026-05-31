@@ -27,10 +27,12 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS
 
 app.use(cors({
   origin: (origin, callback) => {
+    // Rad etilganda xato TASHLAMAYMIZ — aks holda butun so'rov (statik
+    // assetlar ham) 500 bo'ladi. Faqat CORS header bermaymiz (false).
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
-      callback(new Error('CORS: ruxsatsiz origin'));
+      callback(null, false);
     }
   },
   credentials: true,
