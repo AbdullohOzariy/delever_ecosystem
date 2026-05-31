@@ -305,7 +305,8 @@ const calculateWeeklyPayout = (role: string, orders: PayoutOrder[], dailyKPIs: P
   // Qo'lda kiritilgan haftalik bonuslar
   dailyKPIs.forEach(k => { total += Number(k.bonusAmount); });
 
-  return total;
+  // UZS da tiyin yo'q — float xatolarini oldini olish uchun butun som ga yaxlitlaymiz
+  return Math.round(total);
 };
 
 // ---------------------------------------------------------
@@ -978,8 +979,9 @@ app.get('/api/kpi/report/:userId', async (req, res) => {
       dailyKPIs.forEach(k => {
         manualBonus += Number(k.bonusAmount);
       });
-      
-      totalEarnings += manualBonus;
+
+      manualBonus = Math.round(manualBonus);
+      totalEarnings = Math.round(totalEarnings + manualBonus);
 
       const totalOrders = orders.length;
       const avgSpeedMinutes = totalOrders > 0 
