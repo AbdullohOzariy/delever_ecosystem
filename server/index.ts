@@ -25,6 +25,16 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',')
   : ['http://localhost:3000', 'http://localhost:5173'];
 
+// User obyektini qaytarganda parol hash'i hech qachon chiqmasligi uchun
+const userSafeSelect = {
+  id: true,
+  username: true,
+  fullName: true,
+  role: true,
+  status: true,
+  telegramId: true,
+} as const;
+
 app.use(cors({
   origin: (origin, callback) => {
     // Rad etilganda xato TASHLAMAYMIZ — aks holda butun so'rov (statik
@@ -39,6 +49,55 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
+
+// ---------------------------------------------------------
+// AUTH MIDDLEWARE
+// ---------------------------------------------------------
+
+// Token talab qilinmaydigan ochiq endpointlar
+const PUBLIC_PATHS = new Set([
+  '/api/auth/login',
+  '/api/auth/telegram',
+  '/api/health',
+]);
+
+interface AuthPayload { userId: string; role: string; }
+
+declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
+  namespace Express {
+    interface Request { user?: AuthPayload; }
+  }
+}
+
+// Barcha /api/* so'rovlarni himoyalaydi (PUBLIC_PATHS dan tashqari).
+// /api bo'lmagan (statik fayllar) so'rovlar erkin o'tadi.
+const authenticate = (req: express.Request, res: express.Response, next: express.NextFunction) => {
+  if (!req.path.startsWith('/api') || PUBLIC_PATHS.has(req.path)) return next();
+
+  const header = req.headers.authorization;
+  const token = header && header.startsWith('Bearer ') ? header.slice(7) : null;
+  if (!token) return res.status(401).json({ error: 'Avtorizatsiya talab qilinadi' });
+
+  try {
+    req.user = jwt.verify(token, JWT_SECRET) as AuthPayload;
+    next();
+  } catch {
+    return res.status(401).json({ error: 'Token yaroqsiz yoki muddati tugagan' });
+  }
+};
+app.use(authenticate);
+
+// Faqat berilgan rollarga ruxsat beruvchi guard
+const requireRole = (...roles: string[]) =>
+  (req: express.Request, res: express.Response, next: express.NextFunction) => {
+    if (!req.user || !roles.includes(req.user.role)) {
+      return res.status(403).json({ error: "Bu amal uchun ruxsatingiz yo'q" });
+    }
+    next();
+  };
+
+const requireAdmin = requireRole('ADMIN');
 
 // ---------------------------------------------------------
 // UTILS
@@ -229,7 +288,12 @@ const initDefaultAdmin = async () => {
   } catch (error) { console.error("Init error:", error); }
 };
 
-app.post('/api/auth/register', async (req, res) => {
+// Health check (ochiq) — monitoring/Railway uchun
+app.get('/api/health', (_req, res) => {
+  res.json({ status: 'ok', time: new Date().toISOString() });
+});
+
+app.post('/api/auth/register', requireAdmin, async (req, res) => {
   try {
     const { username, fullName, password, role, telegramId } = req.body;
     const existingUser = await prisma.user.findUnique({ where: { username } });
@@ -310,7 +374,7 @@ app.post('/api/auth/telegram', async (req, res) => {
 });
 
 // GET Users (Filtr bilan)
-app.get('/api/users', async (req, res) => {
+app.get('/api/users', requireAdmin, async (req, res) => {
   const { status } = req.query; 
   
   const where: any = {};
@@ -325,7 +389,7 @@ app.get('/api/users', async (req, res) => {
 });
 
 // UPDATE User
-app.put('/api/users/:id', async (req, res) => {
+app.put('/api/users/:id', requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const { fullName, username, role, password, status, telegramId } = req.body;
@@ -343,7 +407,8 @@ app.put('/api/users/:id', async (req, res) => {
 
     const user = await prisma.user.update({
       where: { id },
-      data: updateData
+      data: updateData,
+      select: userSafeSelect
     });
 
     res.json({ message: "Xodim yangilandi", user });
@@ -355,7 +420,7 @@ app.put('/api/users/:id', async (req, res) => {
 
 // ... (Qolgan Import, Schedule qismlari o'zgarishsiz) ...
 
-app.post('/api/orders/import', async (req, res) => {
+app.post('/api/orders/import', requireAdmin, async (req, res) => {
   try {
     const { orders } = req.body; 
     if (!Array.isArray(orders)) return res.status(400).json({ error: "Noto'g'ri format" });
@@ -489,7 +554,10 @@ app.get('/api/orders', async (req, res) => {
 
   const [orders, total] = await Promise.all([
     prisma.order.findMany({
-      include: { operator: true, courier: true },
+      include: {
+        operator: { select: userSafeSelect },
+        courier: { select: userSafeSelect },
+      },
       orderBy: { createdAt: 'desc' },
       skip,
       take: limit,
@@ -500,7 +568,7 @@ app.get('/api/orders', async (req, res) => {
   res.json({ orders, total, page, limit, totalPages: Math.ceil(total / limit) });
 });
 
-app.delete('/api/orders', async (req, res) => {
+app.delete('/api/orders', requireAdmin, async (req, res) => {
   try {
     await prisma.order.deleteMany({});
     res.json({ message: "Barcha buyurtmalar o'chirildi" });
@@ -509,7 +577,7 @@ app.delete('/api/orders', async (req, res) => {
   }
 });
 
-app.post('/api/schedule/generate', async (req, res) => {
+app.post('/api/schedule/generate', requireAdmin, async (req, res) => {
   try {
     const { userId, startDate, endDate, pattern } = req.body; 
     const start = new Date(startDate);
@@ -546,7 +614,7 @@ app.get('/api/schedule/:userId', async (req, res) => {
   res.json(schedule);
 });
 
-app.post('/api/kpi/daily', async (req, res) => {
+app.post('/api/kpi/daily', requireAdmin, async (req, res) => {
   try {
     const { userId, date, scriptScore, errorScore, disciplineScore, comment, bonusAmount } = req.body;
     const targetDate = new Date(date);
@@ -598,7 +666,7 @@ app.post('/api/kpi/daily', async (req, res) => {
   } catch (error) { res.status(500).json({ error: "KPI saqlashda xatolik" }); }
 });
 
-app.post('/api/kpi/confirm', async (req, res) => {
+app.post('/api/kpi/confirm', requireAdmin, async (req, res) => {
   try {
     const { userId, week } = req.body;
     const range = getWeekRange(week);
@@ -689,7 +757,7 @@ app.post('/api/kpi/confirm', async (req, res) => {
 });
 
 // YANGI: Barchasini tasdiqlash (SAFE LOOP)
-app.post('/api/kpi/confirm-all', async (req, res) => {
+app.post('/api/kpi/confirm-all', requireAdmin, async (req, res) => {
   try {
     const { week, role } = req.body; // role: 'COURIER' or 'OPERATOR'
     const range = getWeekRange(week);
@@ -977,7 +1045,7 @@ app.get('/api/kpi/report/:userId', async (req, res) => {
 // ---------------------------------------------------------
 
 // Barcha to'lovlarni olish (Filtr bilan)
-app.get('/api/payments', async (req, res) => {
+app.get('/api/payments', requireRole('ADMIN', 'CASHIER'), async (req, res) => {
   const { status } = req.query;
   
   const where: any = {};
@@ -985,19 +1053,19 @@ app.get('/api/payments', async (req, res) => {
 
   const payments = await prisma.payment.findMany({
     where,
-    include: { user: true },
+    include: { user: { select: userSafeSelect } },
     orderBy: { createdAt: 'desc' }
   });
   res.json(payments);
 });
 
 // To'lovni amalga oshirish (PAID)
-app.post('/api/payments/:id/pay', async (req, res) => {
+app.post('/api/payments/:id/pay', requireRole('ADMIN', 'CASHIER'), async (req, res) => {
   try {
     const { id } = req.params;
     
     // To'lovni topish
-    const payment = await prisma.payment.findUnique({ where: { id }, include: { user: true } });
+    const payment = await prisma.payment.findUnique({ where: { id }, include: { user: { select: userSafeSelect } } });
     if (!payment) return res.status(404).json({ error: "To'lov topilmadi" });
 
     // YANGI: Feedback tekshiruvi
@@ -1011,7 +1079,7 @@ app.post('/api/payments/:id/pay', async (req, res) => {
         status: 'PAID',
         processedAt: new Date()
       },
-      include: { user: true }
+      include: { user: { select: userSafeSelect } }
     });
 
     // TELEGRAM NOTIFICATION (YANGI)
@@ -1027,7 +1095,7 @@ app.post('/api/payments/:id/pay', async (req, res) => {
 });
 
 // YANGI: To'lovni bekor qilish (CANCEL)
-app.post('/api/payments/:id/cancel', async (req, res) => {
+app.post('/api/payments/:id/cancel', requireRole('ADMIN', 'CASHIER'), async (req, res) => {
   try {
     const { id } = req.params;
     
@@ -1059,7 +1127,7 @@ app.post('/api/payments/:id/cancel', async (req, res) => {
 });
 
 // YANGI: Barcha to'lovlarni tozalash (RESET ALL)
-app.post('/api/payments/reset-all', async (req, res) => {
+app.post('/api/payments/reset-all', requireAdmin, async (req, res) => {
   try {
     // 1. Barcha to'lovlarni o'chirish
     await prisma.payment.deleteMany({});
@@ -1107,7 +1175,7 @@ app.get('/api/scripts', async (req, res) => {
   }
 });
 
-app.post('/api/scripts', async (req, res) => {
+app.post('/api/scripts', requireAdmin, async (req, res) => {
   try {
     console.log("Creating script body:", req.body); // DEBUG
 
@@ -1130,7 +1198,7 @@ app.post('/api/scripts', async (req, res) => {
   }
 });
 
-app.put('/api/scripts/:id', async (req, res) => {
+app.put('/api/scripts/:id', requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const { title, content, category, tags } = req.body;
@@ -1147,7 +1215,7 @@ app.put('/api/scripts/:id', async (req, res) => {
   }
 });
 
-app.delete('/api/scripts/:id', async (req, res) => {
+app.delete('/api/scripts/:id', requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     await prisma.script.delete({ where: { id } });
@@ -1158,7 +1226,7 @@ app.delete('/api/scripts/:id', async (req, res) => {
 // ---------------------------------------------------------
 // USERS - DELETE
 // ---------------------------------------------------------
-app.delete('/api/users/:id', async (req, res) => {
+app.delete('/api/users/:id', requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     await prisma.user.delete({ where: { id } });
@@ -1207,7 +1275,7 @@ app.post('/api/ratings', async (req, res) => {
   } catch (error) { res.status(500).json({ error: "Reyting saqlashda xatolik: " + (error as Error).message }); }
 });
 
-app.get('/api/ratings/all', async (req, res) => {
+app.get('/api/ratings/all', requireAdmin, async (req, res) => {
   try {
     const ratings = await prisma.rating.findMany({
       include: {
@@ -1241,7 +1309,7 @@ app.get('/api/ratings/courier/:fromUserId/:week', async (req, res) => {
 // ---------------------------------------------------------
 // ADMIN CHECKLIST
 // ---------------------------------------------------------
-app.get('/api/admin/checklist', async (req, res) => {
+app.get('/api/admin/checklist', requireAdmin, async (req, res) => {
   try {
     const today = new Date();
     today.setHours(0, 0, 0, 0);

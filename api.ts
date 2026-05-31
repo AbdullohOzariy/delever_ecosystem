@@ -4,10 +4,28 @@
 
 export const API_URL = import.meta.env.PROD ? '/api' : 'http://localhost:3001/api';
 
+// Har bir so'rovga JWT tokenni qo'shadigan fetch wrapper.
+// 401 (token yaroqsiz/muddati tugagan) bo'lsa — sessiyani tozalab, login'ga qaytaradi.
+const authFetch = async (url: string, options: RequestInit = {}): Promise<Response> => {
+  const token = localStorage.getItem('token');
+  const headers: Record<string, string> = { ...(options.headers as Record<string, string> | undefined) };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  const res = await fetch(url, { ...options, headers });
+
+  if (res.status === 401) {
+    localStorage.removeItem('token');
+    localStorage.removeItem('delever_user');
+    localStorage.removeItem('activeTab');
+    if (typeof window !== 'undefined') window.location.reload();
+  }
+  return res;
+};
+
 export const api = {
   // Auth
   login: async (credentials: any) => {
-    const res = await fetch(`${API_URL}/auth/login`, {
+    const res = await authFetch(`${API_URL}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(credentials),
@@ -17,7 +35,7 @@ export const api = {
   },
 
   telegramLogin: async (data: { telegramId: number, username?: string, password?: string }) => {
-    const res = await fetch(`${API_URL}/auth/telegram`, {
+    const res = await authFetch(`${API_URL}/auth/telegram`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
@@ -27,7 +45,7 @@ export const api = {
   },
 
   register: async (userData: any) => {
-    const res = await fetch(`${API_URL}/auth/register`, {
+    const res = await authFetch(`${API_URL}/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(userData),
@@ -38,13 +56,13 @@ export const api = {
 
   // Users
   getUsers: async () => {
-    const res = await fetch(`${API_URL}/users`);
+    const res = await authFetch(`${API_URL}/users`);
     if (!res.ok) throw new Error('Failed to fetch users');
     return res.json();
   },
 
   updateUser: async (id: string, data: any) => {
-    const res = await fetch(`${API_URL}/users/${id}`, {
+    const res = await authFetch(`${API_URL}/users/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
@@ -54,7 +72,7 @@ export const api = {
   },
 
   deleteUser: async (id: string) => {
-    const res = await fetch(`${API_URL}/users/${id}`, {
+    const res = await authFetch(`${API_URL}/users/${id}`, {
       method: 'DELETE',
     });
     if (!res.ok) throw new Error('Delete failed');
@@ -63,7 +81,7 @@ export const api = {
 
   // Schedule
   generateSchedule: async (data: { userId: string, startDate: string, endDate: string, pattern: string }) => {
-    const res = await fetch(`${API_URL}/schedule/generate`, {
+    const res = await authFetch(`${API_URL}/schedule/generate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
@@ -73,14 +91,14 @@ export const api = {
   },
 
   getSchedule: async (userId: string) => {
-    const res = await fetch(`${API_URL}/schedule/${userId}`);
+    const res = await authFetch(`${API_URL}/schedule/${userId}`);
     if (!res.ok) throw new Error('Failed to fetch schedule');
     return res.json();
   },
 
   // KPI
   saveDailyKPI: async (data: { userId: string, date: string, scriptScore?: number, errorScore?: number, disciplineScore?: number, bonusAmount?: number, comment: string }) => {
-    const res = await fetch(`${API_URL}/kpi/daily`, {
+    const res = await authFetch(`${API_URL}/kpi/daily`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
@@ -90,7 +108,7 @@ export const api = {
   },
 
   confirmKPI: async (data: { userId: string, week: string }) => {
-    const res = await fetch(`${API_URL}/kpi/confirm`, {
+    const res = await authFetch(`${API_URL}/kpi/confirm`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
@@ -100,7 +118,7 @@ export const api = {
   },
 
   confirmAllKPI: async (data: { week: string, role: string }) => {
-    const res = await fetch(`${API_URL}/kpi/confirm-all`, {
+    const res = await authFetch(`${API_URL}/kpi/confirm-all`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
@@ -110,7 +128,7 @@ export const api = {
   },
 
   getKPIReport: async (userId: string, month: string) => {
-    const res = await fetch(`${API_URL}/kpi/report/${userId}?month=${month}`);
+    const res = await authFetch(`${API_URL}/kpi/report/${userId}?month=${month}`);
     if (!res.ok) throw new Error('Failed to fetch KPI report');
     return res.json();
   },
@@ -119,14 +137,14 @@ export const api = {
     const url = month
       ? `${API_URL}/kpi/history/${userId}?month=${month}`
       : `${API_URL}/kpi/history/${userId}`;
-    const res = await fetch(url);
+    const res = await authFetch(url);
     if (!res.ok) throw new Error('Failed to fetch KPI history');
     return res.json();
   },
 
   // Orders (Master Data)
   getOrders: async (page = 1, limit = 200) => {
-    const res = await fetch(`${API_URL}/orders?page=${page}&limit=${limit}`);
+    const res = await authFetch(`${API_URL}/orders?page=${page}&limit=${limit}`);
     if (!res.ok) throw new Error('Failed to fetch orders');
     const data = await res.json();
     // Pagination formatini qo'llab-quvvatlash
@@ -134,7 +152,7 @@ export const api = {
   },
 
   importOrders: async (orders: any[]) => {
-    const res = await fetch(`${API_URL}/orders/import`, {
+    const res = await authFetch(`${API_URL}/orders/import`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ orders }),
@@ -144,7 +162,7 @@ export const api = {
   },
 
   deleteAllOrders: async () => {
-    const res = await fetch(`${API_URL}/orders`, {
+    const res = await authFetch(`${API_URL}/orders`, {
       method: 'DELETE',
     });
     if (!res.ok) throw new Error('Failed to delete orders');
@@ -154,13 +172,13 @@ export const api = {
   // Payments
   getPayments: async (status?: string) => {
     const url = status ? `${API_URL}/payments?status=${status}` : `${API_URL}/payments`;
-    const res = await fetch(url);
+    const res = await authFetch(url);
     if (!res.ok) throw new Error('Failed to fetch payments');
     return res.json();
   },
 
   payPayment: async (id: string) => {
-    const res = await fetch(`${API_URL}/payments/${id}/pay`, {
+    const res = await authFetch(`${API_URL}/payments/${id}/pay`, {
       method: 'POST',
     });
     if (!res.ok) throw new Error('Failed to process payment');
@@ -168,7 +186,7 @@ export const api = {
   },
 
   cancelPayment: async (id: string) => {
-    const res = await fetch(`${API_URL}/payments/${id}/cancel`, {
+    const res = await authFetch(`${API_URL}/payments/${id}/cancel`, {
       method: 'POST',
     });
     if (!res.ok) throw new Error('Failed to cancel payment');
@@ -176,7 +194,7 @@ export const api = {
   },
 
   resetAllPayments: async () => {
-    const res = await fetch(`${API_URL}/payments/reset-all`, {
+    const res = await authFetch(`${API_URL}/payments/reset-all`, {
       method: 'POST',
     });
     if (!res.ok) throw new Error('Failed to reset payments');
@@ -184,33 +202,33 @@ export const api = {
   },
 
   getPendingFeedback: async (userId: string) => {
-    const res = await fetch(`${API_URL}/payments/pending-feedback/${userId}`);
+    const res = await authFetch(`${API_URL}/payments/pending-feedback/${userId}`);
     if (!res.ok) throw new Error('Failed to fetch pending feedback');
     return res.json();
   },
 
   // Checklist
   getAdminChecklist: async () => {
-    const res = await fetch(`${API_URL}/admin/checklist`);
+    const res = await authFetch(`${API_URL}/admin/checklist`);
     if (!res.ok) throw new Error('Failed to fetch checklist');
     return res.json();
   },
 
   // Ratings
   getOperators: async () => {
-    const res = await fetch(`${API_URL}/operators`);
+    const res = await authFetch(`${API_URL}/operators`);
     if (!res.ok) throw new Error('Failed to fetch operators');
     return res.json();
   },
 
   getCouriers: async () => {
-    const res = await fetch(`${API_URL}/couriers`);
+    const res = await authFetch(`${API_URL}/couriers`);
     if (!res.ok) throw new Error('Failed to fetch couriers');
     return res.json();
   },
 
   saveRating: async (data: { fromUserId: string, toUserId: string, score: number, comment: string, week: string }) => {
-    const res = await fetch(`${API_URL}/ratings`, {
+    const res = await authFetch(`${API_URL}/ratings`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
@@ -220,26 +238,26 @@ export const api = {
   },
 
   getRatingsForCourierAndWeek: async (fromUserId: string, week: string) => {
-    const res = await fetch(`${API_URL}/ratings/courier/${fromUserId}/${week}`);
+    const res = await authFetch(`${API_URL}/ratings/courier/${fromUserId}/${week}`);
     if (!res.ok) throw new Error('Failed to fetch ratings');
     return res.json();
   },
 
   getAllRatings: async () => {
-    const res = await fetch(`${API_URL}/ratings/all`);
+    const res = await authFetch(`${API_URL}/ratings/all`);
     if (!res.ok) throw new Error('Failed to fetch all ratings');
     return res.json();
   },
 
   // Scripts
   getScripts: async () => {
-    const res = await fetch(`${API_URL}/scripts`);
+    const res = await authFetch(`${API_URL}/scripts`);
     if (!res.ok) throw new Error('Failed to fetch scripts');
     return res.json();
   },
 
   createScript: async (data: Record<string, unknown> | Record<string, unknown>[]) => {
-    const res = await fetch(`${API_URL}/scripts`, {
+    const res = await authFetch(`${API_URL}/scripts`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
@@ -249,7 +267,7 @@ export const api = {
   },
 
   updateScript: async (id: string, data: any) => {
-    const res = await fetch(`${API_URL}/scripts/${id}`, {
+    const res = await authFetch(`${API_URL}/scripts/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
@@ -259,7 +277,7 @@ export const api = {
   },
 
   deleteScript: async (id: string) => {
-    const res = await fetch(`${API_URL}/scripts/${id}`, {
+    const res = await authFetch(`${API_URL}/scripts/${id}`, {
       method: 'DELETE',
     });
     if (!res.ok) throw new Error('Failed to delete script');
