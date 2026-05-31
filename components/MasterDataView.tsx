@@ -134,6 +134,28 @@ const MasterDataView: React.FC = () => {
     return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
+  // Katta importlarni bo'lib-bo'lib yuboradi (50MB limit / timeout / progress uchun)
+  const submitOrdersInChunks = async (allOrders: any[]) => {
+    const CHUNK = 1000;
+    let totalAdded = 0;
+    let newUsers = 0;
+
+    for (let i = 0; i < allOrders.length; i += CHUNK) {
+      const chunk = allOrders.slice(i, i + CHUNK);
+      const sentSoFar = Math.min(i + CHUNK, allOrders.length);
+      setToast({ message: `Import: ${sentSoFar}/${allOrders.length} qator yuborilmoqda...`, type: 'info' });
+      const response = await api.importOrders(chunk);
+      totalAdded += response.added || 0;
+      newUsers += response.newUsersCreated || 0;
+    }
+
+    setToast({
+      message: `Import yakunlandi! Qo'shildi: ${totalAdded}${newUsers ? `, yangi xodim: ${newUsers}` : ''}`,
+      type: 'success'
+    });
+    loadOrders();
+  };
+
   const processCSV = async (csvText: string) => {
     setIsParsing(true);
     try {
@@ -191,13 +213,7 @@ const MasterDataView: React.FC = () => {
         setToast({ message: `${errors.length} ta qator o'tkazildi: ${shown}${extra}`, type: 'info' });
       }
       if (newOrders.length === 0) { setToast({ message: "Faylda yaroqli ma'lumot topilmadi.", type: 'error' }); return; }
-      const response = await api.importOrders(newOrders);
-      if (response.error) {
-        setToast({ message: `Yangi xodimlar topildi: ${response.newOperators?.length || 0} operator, ${response.newCouriers?.length || 0} kuryer. Xodimlar bo'limida yarating.`, type: 'info' });
-      } else {
-        setToast({ message: `Import yakunlandi! Qo'shildi: ${response.added}`, type: 'success' });
-        loadOrders();
-      }
+      await submitOrdersInChunks(newOrders);
     } catch (error) {
       setToast({ message: "Import qilishda xatolik yuz berdi.", type: 'error' });
     } finally {
@@ -273,13 +289,7 @@ const MasterDataView: React.FC = () => {
         setToast({ message: "Faylda yaroqli ma'lumot topilmadi.", type: 'error' });
         return;
       }
-      const response = await api.importOrders(newOrders);
-      if (response.error) {
-        setToast({ message: `Yangi xodimlar topildi: ${response.newOperators?.length || 0} operator, ${response.newCouriers?.length || 0} kuryer. Xodimlar bo'limida yarating.`, type: 'info' });
-      } else {
-        setToast({ message: `Import yakunlandi! Qo'shildi: ${response.added}`, type: 'success' });
-        loadOrders();
-      }
+      await submitOrdersInChunks(newOrders);
     } catch (error) {
       setToast({ message: "Excel faylni o'qishda xatolik yuz berdi.", type: 'error' });
     } finally {

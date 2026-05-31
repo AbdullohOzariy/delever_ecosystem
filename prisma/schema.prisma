@@ -217,6 +217,11 @@ model Order {
   courierId    String?
   courier      User?       @relation("CourierOrders", fields: [courierId], references: [id])
 
+  // Hisobot/to'lov so'rovlari uchun indekslar (to'liq skanlashni oldini oladi)
+  @@index([operatorId, createdAt])
+  @@index([courierId, createdAt])
+  @@index([createdAt])
+  @@index([status])
   @@map("orders")
 }
 
@@ -235,5 +240,8 @@ model Payment {
 
   createdAt         DateTime        @default(now())
 
+  @@index([userId])
+  @@index([status])
+  @@index([period, frequency])
   @@map("payments")
 }

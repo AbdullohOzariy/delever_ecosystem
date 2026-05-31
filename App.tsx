@@ -1,18 +1,28 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { User, UserRole } from './types';
 import Sidebar from './components/Sidebar'; // Bu endi Header vazifasini bajaradi
-import KPIView from './components/KPIView';
-import FeedbackSystem from './components/FeedbackSystem';
-import AdminPortal from './components/AdminPortal';
-import CashierPortal from './components/CashierPortal';
-import ScriptsPortal from './components/ScriptsPortal';
-import AdminKPIEntry from './components/AdminKPIEntry';
-import AdminKPIReports from './components/AdminKPIReports';
-import RatingView from './components/RatingView';
-import CourierReports from './components/CourierReports';
-import MasterDataView from './components/MasterDataView';
-import AdminChecklist from './components/AdminChecklist'; 
 import { api } from './api';
+
+// Og'ir bo'limlarni faqat ochilganda yuklash (kichikroq boshlang'ich bundle).
+// xlsx / jspdf / recharts kabi kutubxonalar shu bo'limlar bilan birga keyin yuklanadi.
+const KPIView = lazy(() => import('./components/KPIView'));
+const FeedbackSystem = lazy(() => import('./components/FeedbackSystem'));
+const AdminPortal = lazy(() => import('./components/AdminPortal'));
+const CashierPortal = lazy(() => import('./components/CashierPortal'));
+const ScriptsPortal = lazy(() => import('./components/ScriptsPortal'));
+const AdminKPIEntry = lazy(() => import('./components/AdminKPIEntry'));
+const AdminKPIReports = lazy(() => import('./components/AdminKPIReports'));
+const RatingView = lazy(() => import('./components/RatingView'));
+const CourierReports = lazy(() => import('./components/CourierReports'));
+const MasterDataView = lazy(() => import('./components/MasterDataView'));
+const AdminChecklist = lazy(() => import('./components/AdminChecklist'));
+
+// Lazy bo'lim yuklanayotganda ko'rsatiladigan spinner
+const ViewLoader: React.FC = () => (
+  <div className="flex items-center justify-center py-20">
+    <div className="w-6 h-6 border-2 border-primary/20 border-t-primary rounded-full animate-spin" />
+  </div>
+);
 
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -251,7 +261,9 @@ const App: React.FC = () => {
   if (isTelegram && currentUser.role === UserRole.COURIER) {
     return (
       <div className="min-h-screen bg-background p-4">
-        <CourierReports user={currentUser} />
+        <Suspense fallback={<ViewLoader />}>
+          <CourierReports user={currentUser} />
+        </Suspense>
       </div>
     );
   }
@@ -267,31 +279,33 @@ const App: React.FC = () => {
         toggleTheme={toggleTheme}
       />
       <main className="flex-1 px-4 py-6 md:px-8 md:py-8 w-full max-w-screen-2xl mx-auto">
-        {activeTab === 'checklist' && <AdminChecklist setActiveTab={handleTabChange} />}
+        <Suspense fallback={<ViewLoader />}>
+          {activeTab === 'checklist' && <AdminChecklist setActiveTab={handleTabChange} />}
 
-        {activeTab === 'kpi' && <KPIView user={currentUser} />}
-        {activeTab === 'courier_reports' && <CourierReports user={currentUser} />}
-        
-        {activeTab === 'admin_kpi' && (
-          <AdminKPIEntry
-            users={users}
-          />
-        )}
-        {activeTab === 'kpi_reports' && (
-          <AdminKPIReports users={users} />
-        )}
+          {activeTab === 'kpi' && <KPIView user={currentUser} />}
+          {activeTab === 'courier_reports' && <CourierReports user={currentUser} />}
 
-        {activeTab === 'master_data' && <MasterDataView />}
-        {activeTab === 'rating' && <RatingView />}
-        {activeTab === 'feedback' && <FeedbackSystem user={currentUser} />}
-        {activeTab === 'users' && (
-          <AdminPortal
-            users={users}
-            onUpdateUsers={handleUpdateUsers}
-          />
-        )}
-        {activeTab === 'payouts' && <CashierPortal />}
-        {activeTab === 'scripts' && <ScriptsPortal user={currentUser} />}
+          {activeTab === 'admin_kpi' && (
+            <AdminKPIEntry
+              users={users}
+            />
+          )}
+          {activeTab === 'kpi_reports' && (
+            <AdminKPIReports users={users} />
+          )}
+
+          {activeTab === 'master_data' && <MasterDataView />}
+          {activeTab === 'rating' && <RatingView />}
+          {activeTab === 'feedback' && <FeedbackSystem user={currentUser} />}
+          {activeTab === 'users' && (
+            <AdminPortal
+              users={users}
+              onUpdateUsers={handleUpdateUsers}
+            />
+          )}
+          {activeTab === 'payouts' && <CashierPortal />}
+          {activeTab === 'scripts' && <ScriptsPortal user={currentUser} />}
+        </Suspense>
       </main>
     </div>
   );
