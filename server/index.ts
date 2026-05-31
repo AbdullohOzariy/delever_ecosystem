@@ -14,6 +14,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
+app.set('trust proxy', 1); // Railway proxy ortida — req.ip to'g'ri bo'lishi uchun
 const prisma = new PrismaClient();
 const PORT = process.env.PORT || 3001;
 const JWT_SECRET = process.env.JWT_SECRET || 'super_secret_key';
@@ -98,6 +99,30 @@ const requireRole = (...roles: string[]) =>
   };
 
 const requireAdmin = requireRole('ADMIN');
+
+// ---------------------------------------------------------
+// LOGIN RATE-LIMIT (brute-force'ga qarshi, oddiy in-memory)
+// ---------------------------------------------------------
+const loginAttempts = new Map<string, { count: number; resetAt: number }>();
+const LOGIN_WINDOW_MS = 15 * 60 * 1000; // 15 daqiqa
+const LOGIN_MAX = 10;                    // oynada maksimal urinish
+
+const checkLoginRate = (key: string): boolean => {
+  const now = Date.now();
+  const rec = loginAttempts.get(key);
+  if (!rec || now > rec.resetAt) {
+    loginAttempts.set(key, { count: 1, resetAt: now + LOGIN_WINDOW_MS });
+    return true;
+  }
+  rec.count++;
+  return rec.count <= LOGIN_MAX;
+};
+
+// Vaqti-vaqti bilan eskirgan yozuvlarni tozalash (xotira o'smasligi uchun)
+setInterval(() => {
+  const now = Date.now();
+  for (const [k, v] of loginAttempts) if (now > v.resetAt) loginAttempts.delete(k);
+}, LOGIN_WINDOW_MS).unref();
 
 // ---------------------------------------------------------
 // UTILS
@@ -354,6 +379,12 @@ app.post('/api/auth/register', requireAdmin, async (req, res) => {
 app.post('/api/auth/login', async (req, res) => {
   try {
     const { username, password } = req.body;
+
+    const rateKey = `${req.ip || 'unknown'}:${username || ''}`;
+    if (!checkLoginRate(rateKey)) {
+      return res.status(429).json({ error: "Juda ko'p urinish. 15 daqiqadan keyin qayta urinib ko'ring." });
+    }
+
     const user = await prisma.user.findUnique({ where: { username } });
     
     if (!user || !(await bcrypt.compare(password, user.password))) return res.status(401).json({ error: "Login xato" });
