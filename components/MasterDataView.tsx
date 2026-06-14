@@ -18,26 +18,6 @@ interface Order {
 
 const EXPECTED_HEADER = "№,Ид.заказа,Оператор,Название филиала,Тип доставки,Курьер,Источник,Тип платежа,Цена заказа,Цена доставки,Новый заказ,Итоговое время";
 
-// Qo'shtirnoq ichidagi vergullarni to'g'ri ajratadi
-const parseCSVLine = (line: string): string[] => {
-  const result: string[] = [];
-  let current = '';
-  let inQuotes = false;
-  for (let i = 0; i < line.length; i++) {
-    const ch = line[i];
-    if (ch === '"') {
-      inQuotes = !inQuotes;
-    } else if (ch === ',' && !inQuotes) {
-      result.push(current.trim());
-      current = '';
-    } else {
-      current += ch;
-    }
-  }
-  result.push(current.trim());
-  return result;
-};
-
 // ---------------------------------------------------------
 // USTUNLARNI SARLAVHA NOMI BO'YICHA TOPISH
 // Fayl shablon.xlsx kabi kelishi mumkin — tizim kerakli ustunlarni
@@ -100,9 +80,8 @@ const MasterDataView: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [isParsing, setIsParsing] = useState(false);
   const [search, setSearch] = useState('');
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const excelFileInputRef = useRef<HTMLInputElement>(null);
-  const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' | 'info' } | null>(null);
+  const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' | 'info', duration?: number } | null>(null);
   const [showHelp, setShowHelp] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState(defaultFilters);
@@ -134,11 +113,20 @@ const MasterDataView: React.FC = () => {
     return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
-  // Katta importlarni bo'lib-bo'lib yuboradi (50MB limit / timeout / progress uchun)
-  const submitOrdersInChunks = async (allOrders: any[]) => {
+  // Katta importlarni bo'lib-bo'lib yuboradi (50MB limit / timeout / progress uchun).
+  // frontendSkipped — serverga yuborilmasdan, faylni o'qishda o'tkazib yuborilgan
+  // qatorlar (bo'sh ID / noto'g'ri narx) — yakuniy hisobotda ham ko'rsatamiz.
+  const submitOrdersInChunks = async (allOrders: any[], frontendSkipped: string[] = []) => {
     const CHUNK = 1000;
     let totalAdded = 0;
     let newUsers = 0;
+    let skippedExisting = 0; // bazada allaqachon bor
+    let dupInFile = 0;       // fayl ichida ID takror
+    let invalid = 0;         // chegaradan oshgan / yaroqsiz
+    let failed = 0;          // yozishda xato
+    const preSkipped = frontendSkipped.length; // faylni o'qishda o'tkazilgan
+    const sampleSkipped: string[] = [];
+    const sampleProblems: { id: string; reason: string }[] = [];
 
     for (let i = 0; i < allOrders.length; i += CHUNK) {
       const chunk = allOrders.slice(i, i + CHUNK);
@@ -147,79 +135,45 @@ const MasterDataView: React.FC = () => {
       const response = await api.importOrders(chunk);
       totalAdded += response.added || 0;
       newUsers += response.newUsersCreated || 0;
+      skippedExisting += response.skippedExistingCount || 0;
+      dupInFile += response.duplicateInFileCount || 0;
+      invalid += response.invalidCount || 0;
+      failed += response.failedCount || 0;
+      if (response.skippedExisting) sampleSkipped.push(...response.skippedExisting);
+      if (response.invalidRows) sampleProblems.push(...response.invalidRows);
+      if (response.failed) sampleProblems.push(...response.failed);
     }
 
-    setToast({
-      message: `Import yakunlandi! Qo'shildi: ${totalAdded}${newUsers ? `, yangi xodim: ${newUsers}` : ''}`,
-      type: 'success'
-    });
+    const lost = skippedExisting + dupInFile + invalid + failed + preSkipped;
+    if (lost === 0) {
+      // Muvaffaqiyatli natija 6 soniya ko'rinib turadi (o'tkazib yuborilmasin)
+      setToast({
+        message: `Import yakunlandi! Qo'shildi: ${totalAdded}${newUsers ? `, yangi xodim: ${newUsers}` : ''}`,
+        type: 'success',
+        duration: 6000
+      });
+    } else {
+      // Nimaga tushib qolganini ham UI'da, ham konsolda ko'rsatamiz (F12 → Console)
+      const parts: string[] = [`Qo'shildi: ${totalAdded}`];
+      if (skippedExisting) parts.push(`bazada bor: ${skippedExisting}`);
+      if (dupInFile) parts.push(`fayl ichi dublikat: ${dupInFile}`);
+      if (invalid) parts.push(`yaroqsiz: ${invalid}`);
+      if (failed) parts.push(`xato: ${failed}`);
+      if (preSkipped) parts.push(`o'qishda o'tkazilgan: ${preSkipped}`);
+      const ids = sampleSkipped.slice(0, 5).join(', ');
+      // Tushib qolganlar bo'lsa — o'qib ulgurish uchun qo'lda yopilguncha turadi
+      setToast({
+        message: `${parts.join(' · ')}${ids ? ` | masalan ID: ${ids}…` : ''}`,
+        type: 'info',
+        duration: 0
+      });
+      console.warn('📋 Import — tushib qolgan qatorlar:', {
+        bazadaBor: sampleSkipped,
+        yaroqsizYokiXato: sampleProblems,
+        oqishdaOtkazilgan: frontendSkipped,
+      });
+    }
     loadOrders();
-  };
-
-  const processCSV = async (csvText: string) => {
-    setIsParsing(true);
-    try {
-      const lines = csvText.trim().split('\n');
-      if (lines.length < 2) {
-        setToast({ message: "Fayl bo'sh yoki noto'g'ri formatda!", type: 'error' });
-        return;
-      }
-      const headerCols = parseCSVLine(lines[0].trim().replace(/^\uFEFF/, ''));
-      const { index, missing } = resolveColumns(headerCols);
-      if (missing.length > 0) {
-        setToast({ message: `CSV'da kerakli ustun(lar) topilmadi: ${missing.join(', ')}`, type: 'error' });
-        return;
-      }
-
-      const get = (cols: any[], field: string): string => {
-        const i = index[field];
-        return i >= 0 ? String(cols[i] ?? '').trim() : '';
-      };
-
-      const newOrders: any[] = [];
-      const errors: string[] = [];
-      for (let i = 1; i < lines.length; i++) {
-        const line = lines[i].trim();
-        if (!line) continue;
-        const cols = parseCSVLine(line);
-
-        const id = get(cols, 'id');
-        if (!id) {
-          errors.push(`${i+1}-qator: ID bo'sh`);
-          continue;
-        }
-        const amountStr = get(cols, 'amount').replace(/\s/g, '').replace(',', '.');
-        const amount = parseFloat(amountStr);
-        if (isNaN(amount)) {
-          errors.push(`${i+1}-qator: narx noto'g'ri ("${get(cols, 'amount')}")`);
-          continue;
-        }
-        const deliveryPriceStr = get(cols, 'deliveryPrice').replace(/\s/g, '').replace(',', '.');
-        newOrders.push({
-          id: String(id),
-          operatorName: get(cols, 'operatorName'),
-          branch: get(cols, 'branch'),
-          deliveryType: get(cols, 'deliveryType'),
-          courierName: get(cols, 'courierName'),
-          amount,
-          deliveryPrice: parseFloat(deliveryPriceStr) || 0,
-          createdAt: get(cols, 'createdAt'),
-          deliveryTimeSeconds: parseTimeToSeconds(get(cols, 'deliveryTimeSeconds'))
-        });
-      }
-      if (errors.length > 0) {
-        const shown = errors.slice(0, 3).join(' | ');
-        const extra = errors.length > 3 ? ` va yana ${errors.length - 3} ta` : '';
-        setToast({ message: `${errors.length} ta qator o'tkazildi: ${shown}${extra}`, type: 'info' });
-      }
-      if (newOrders.length === 0) { setToast({ message: "Faylda yaroqli ma'lumot topilmadi.", type: 'error' }); return; }
-      await submitOrdersInChunks(newOrders);
-    } catch (error) {
-      setToast({ message: "Import qilishda xatolik yuz berdi.", type: 'error' });
-    } finally {
-      setIsParsing(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
-    }
   };
 
   const processExcel = async (file: File) => {
@@ -232,14 +186,14 @@ const MasterDataView: React.FC = () => {
       const rows: any[][] = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
 
       if (rows.length < 2) {
-        setToast({ message: "Fayl bo'sh yoki noto'g'ri formatda!", type: 'error' });
+        setToast({ message: "Fayl bo'sh yoki noto'g'ri formatda!", type: 'error', duration: 6000 });
         return;
       }
 
       const headerRow = rows[0] as any[];
       const { index, missing } = resolveColumns(headerRow);
       if (missing.length > 0) {
-        setToast({ message: `Excel'da kerakli ustun(lar) topilmadi: ${missing.join(', ')}`, type: 'error' });
+        setToast({ message: `Excel'da kerakli ustun(lar) topilmadi: ${missing.join(', ')}`, type: 'error', duration: 6000 });
         return;
       }
 
@@ -280,18 +234,16 @@ const MasterDataView: React.FC = () => {
         });
       }
 
-      if (errors.length > 0) {
-        const shown = errors.slice(0, 3).join(' | ');
-        const extra = errors.length > 3 ? ` va yana ${errors.length - 3} ta` : '';
-        setToast({ message: `${errors.length} ta qator o'tkazildi: ${shown}${extra}`, type: 'info' });
-      }
       if (newOrders.length === 0) {
-        setToast({ message: "Faylda yaroqli ma'lumot topilmadi.", type: 'error' });
+        setToast({ message: "Faylda yaroqli ma'lumot topilmadi.", type: 'error', duration: 6000 });
         return;
       }
-      await submitOrdersInChunks(newOrders);
+      // O'qishda o'tkazib yuborilgan qatorlar (bo'sh ID / noto'g'ri narx) ham
+      // yakuniy hisobotda ko'rinadi — jimgina yo'qolmaydi
+      await submitOrdersInChunks(newOrders, errors);
     } catch (error) {
-      setToast({ message: "Excel faylni o'qishda xatolik yuz berdi.", type: 'error' });
+      console.error("Excel import xatosi:", error);
+      setToast({ message: "Excel faylni o'qishda xatolik yuz berdi.", type: 'error', duration: 6000 });
     } finally {
       setIsParsing(false);
       if (excelFileInputRef.current) excelFileInputRef.current.value = '';
@@ -365,7 +317,7 @@ const MasterDataView: React.FC = () => {
 
   return (
     <div className="space-y-5 animate-fadeIn pb-20 relative">
-      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+      {toast && <Toast message={toast.message} type={toast.type} duration={toast.duration} onClose={() => setToast(null)} />}
 
       {/* HEADER */}
       <header className="card p-5">
@@ -439,27 +391,12 @@ const MasterDataView: React.FC = () => {
             </button>
 
             <input
-              type="file" accept=".csv" className="hidden" ref={fileInputRef}
-              onChange={(e) => {
-                const file = e.target.files?.[0]; if (!file) return;
-                const r = new FileReader(); r.onload = (ev) => processCSV(ev.target?.result as string); r.readAsText(file);
-              }}
-            />
-            <input
               type="file" accept=".xlsx,.xls" className="hidden" ref={excelFileInputRef}
               onChange={(e) => {
                 const file = e.target.files?.[0]; if (!file) return;
                 processExcel(file);
               }}
             />
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              disabled={isParsing}
-              className="btn-accent flex items-center gap-2 disabled:opacity-50"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
-              {isParsing ? 'Yuklanmoqda...' : 'CSV Yuklash'}
-            </button>
             <button
               onClick={() => excelFileInputRef.current?.click()}
               disabled={isParsing}
@@ -592,13 +529,13 @@ const MasterDataView: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-primary/20 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-surface w-full max-w-2xl rounded-4xl p-8 shadow-2xl animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto border border-white/50">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-2xl font-black text-primary uppercase tracking-tight">CSV Yuklash Tartibi</h3>
+              <h3 className="text-2xl font-black text-primary uppercase tracking-tight">Excel Yuklash Tartibi</h3>
               <button onClick={() => setShowHelp(false)} className="p-2 bg-background rounded-xl hover:bg-secondary/10 transition-colors">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" x2="6" y1="6" y2="18"/><line x1="6" x2="18" y1="6" y2="18"/></svg>
               </button>
             </div>
             <div className="space-y-6 text-sm text-secondary font-medium">
-              <p>Tizimga ma'lumotlarni yuklash uchun <b>.csv</b> formatidagi fayldan foydalaning. Faylning birinchi qatori (sarlavha) quyidagicha bo'lishi <b>SHART</b>:</p>
+              <p>Tizimga ma'lumotlarni yuklash uchun <b>.xlsx</b> (Excel) formatidagi fayldan foydalaning. Faylning birinchi qatori (sarlavha) quyidagi ustun nomlarini o'z ichiga olishi <b>SHART</b> (ustun tartibi muhim emas):</p>
               <div className="bg-background p-4 rounded-2xl font-mono text-xs break-all border border-secondary/10 text-primary">{EXPECTED_HEADER}</div>
               <div>
                 <h4 className="font-bold text-primary mb-2 uppercase tracking-widest text-xs">Ustunlar tavsifi:</h4>
@@ -620,9 +557,10 @@ const MasterDataView: React.FC = () => {
               <div className="bg-amber-50 p-4 rounded-2xl border border-amber-100 text-amber-800">
                 <p className="font-black mb-1 uppercase tracking-widest text-xs">⚠️ Muhim eslatmalar:</p>
                 <ul className="list-disc pl-5 space-y-1 text-xs font-bold">
-                  <li>Fayl kodirovkasi <b>UTF-8</b> bo'lishi kerak.</li>
+                  <li>Fayl <b>.xlsx</b> yoki <b>.xls</b> formatida bo'lishi kerak.</li>
                   <li>Sana formati <b>2024-03-21 14:30:00</b> kabi bo'lishi kerak.</li>
                   <li>Narx ustunlarida so'm belgisi bo'lmasligi kerak (faqat raqam).</li>
+                  <li>Bir xil <b>Ид.заказа</b> takror kelsa yoki bazada bor bo'lsa — qayta qo'shilmaydi (hisobotda ko'rsatiladi).</li>
                   <li>Tizimda topilmagan xodimlar avtomatik yaratiladi (parol: 123456).</li>
                 </ul>
               </div>

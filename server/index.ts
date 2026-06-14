@@ -561,10 +561,39 @@ app.post('/api/orders/import', requireAdmin, async (req, res) => {
 
     updateMap();
 
-    const formattedOrders = orders.map((o: any) => {
+    // Ustun chegaralari: amount/deliveryPrice — Decimal(10,2) → maks 99,999,999.99;
+    // deliveryTimeSeconds — Int → maks 2,147,483,647. Oshib ketsa createMany butun
+    // partiyani yiqitardi; shuning uchun bunday qatorlarni oldindan ajratib olamiz.
+    const MAX_DECIMAL = 99_999_999.99;
+    const MAX_INT = 2_147_483_647;
+
+    const formattedOrders: any[] = [];
+    const duplicateInFile: string[] = []; // shu faylning o'zida ID takrorlangan
+    const invalidRows: { id: string; reason: string }[] = []; // chegaradan oshgan/yaroqsiz
+    const seenIds = new Set<string>();
+
+    for (const o of orders as any[]) {
+      const id = String(o.id ?? '').trim();
+      if (!id) { invalidRows.push({ id: '(bo\'sh)', reason: "ID bo'sh" }); continue; }
+
+      if (seenIds.has(id)) { duplicateInFile.push(id); continue; }
+      seenIds.add(id);
+
       const amount = parseFloat(o.amount);
       const deliveryPrice = parseFloat(o.deliveryPrice);
       const deliveryTimeSeconds = parseInt(o.deliveryTimeSeconds);
+
+      const safeAmount = isNaN(amount) ? 0 : amount;
+      const safeDelivery = isNaN(deliveryPrice) ? 0 : deliveryPrice;
+
+      if (safeAmount > MAX_DECIMAL) {
+        invalidRows.push({ id, reason: `Summa ${safeAmount} ustun chegarasidan (99,999,999.99) oshib ketdi` });
+        continue;
+      }
+      if (safeDelivery > MAX_DECIMAL) {
+        invalidRows.push({ id, reason: `Dostavka narxi ${safeDelivery} chegaradan oshib ketdi` });
+        continue;
+      }
 
       const opName = cleanString(o.operatorName);
       const crName = cleanString(o.courierName);
@@ -572,27 +601,37 @@ app.post('/api/orders/import', requireAdmin, async (req, res) => {
       const operatorId = opName ? userMap.get(opName) : null;
       const courierId = crName ? userMap.get(crName) : null;
 
-      return {
-        id: String(o.id).trim(),
+      formattedOrders.push({
+        id,
         customerName: o.customerName || 'Mijoz',
         address: o.address || '',
-        amount: isNaN(amount) ? 0 : amount,
-        deliveryPrice: isNaN(deliveryPrice) ? 0 : deliveryPrice,
-        deliveryType: o.deliveryType || '', 
+        amount: safeAmount,
+        deliveryPrice: safeDelivery,
+        deliveryType: o.deliveryType || '',
         branch: o.branch || null, // YANGI: Filial nomi
-        status: OrderStatus.DELIVERED, 
+        status: OrderStatus.DELIVERED,
         createdAt: parseDate(o.createdAt),
         deliveredAt: parseDate(o.createdAt),
-        deliveryTimeSeconds: isNaN(deliveryTimeSeconds) ? 0 : deliveryTimeSeconds,
+        deliveryTimeSeconds: (isNaN(deliveryTimeSeconds) || deliveryTimeSeconds > MAX_INT) ? 0 : deliveryTimeSeconds,
         operatorId: operatorId || null,
         courierId: courierId || null
-      };
-    });
+      });
+    }
+
+    // Bazada allaqachon mavjud ID'lar — skipDuplicates ularni jimgina tashlaydi,
+    // shuning uchun oldindan aniqlab, hisobotda ko'rsatamiz.
+    const incomingIds = formattedOrders.map(o => o.id);
+    const existingRows = incomingIds.length
+      ? await prisma.order.findMany({ where: { id: { in: incomingIds } }, select: { id: true } })
+      : [];
+    const existingIds = new Set(existingRows.map(r => r.id));
+    const skippedExisting = incomingIds.filter(id => existingIds.has(id));
 
     let totalAdded = 0;
+    const failed: { id: string; reason: string }[] = [];
     const BATCH_SIZE = 2000;
     const chunks = chunkArray(formattedOrders, BATCH_SIZE);
-    
+
     for (const chunk of chunks) {
       try {
         const result = await prisma.order.createMany({
@@ -601,18 +640,43 @@ app.post('/api/orders/import', requireAdmin, async (req, res) => {
         });
         totalAdded += result.count;
       } catch (err) {
-        console.error("Batch insert error:", err);
+        // Bitta yaroqsiz qator butun partiyani yiqitmasligi uchun qator-qatorga o'tamiz
+        console.error("Batch xato — qator-qator rejimga o'tildi:", (err as Error).message);
+        for (const row of chunk) {
+          try {
+            await prisma.order.create({ data: row });
+            totalAdded++;
+          } catch (rowErr: any) {
+            if (rowErr?.code === 'P2002') continue; // dublikat — allaqachon bor
+            failed.push({ id: row.id, reason: (rowErr?.message || 'nomalum xato').slice(0, 200) });
+          }
+        }
       }
     }
 
-    console.log(`✅ Import tugadi. Qo'shildi: ${totalAdded}`);
+    console.log(
+      `✅ Import: qo'shildi=${totalAdded}, bazada bor=${skippedExisting.length}, ` +
+      `fayl ichi dublikat=${duplicateInFile.length}, yaroqsiz=${invalidRows.length}, xato=${failed.length}`
+    );
+    if (skippedExisting.length) console.log("  ⤷ bazada bor (tashlandi):", skippedExisting.slice(0, 20));
+    if (duplicateInFile.length) console.log("  ⤷ fayl ichida takror:", duplicateInFile.slice(0, 20));
+    if (invalidRows.length) console.log("  ⤷ yaroqsiz qatorlar:", invalidRows.slice(0, 20));
+    if (failed.length) console.log("  ⤷ yozishda xato:", failed.slice(0, 20));
 
-    res.json({ 
-      message: "Import yakunlandi", 
-      added: totalAdded, 
+    res.json({
+      message: "Import yakunlandi",
+      added: totalAdded,
       totalProcessed: orders.length,
-      skipped: orders.length - totalAdded,
-      newUsersCreated: newOperators.size + newCouriers.size
+      newUsersCreated: newOperators.size + newCouriers.size,
+      // Tushib qolgan qatorlar — sababi bo'yicha (tekshirish uchun)
+      skippedExistingCount: skippedExisting.length,
+      duplicateInFileCount: duplicateInFile.length,
+      invalidCount: invalidRows.length,
+      failedCount: failed.length,
+      skippedExisting: skippedExisting.slice(0, 50),
+      duplicateInFile: duplicateInFile.slice(0, 50),
+      invalidRows: invalidRows.slice(0, 50),
+      failed: failed.slice(0, 50)
     });
 
   } catch (error) {

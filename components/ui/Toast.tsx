@@ -1,18 +1,24 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 
 interface ToastProps {
   message: string;
   type: 'success' | 'error' | 'info';
   onClose: () => void;
+  // ms — qancha vaqt ko'rinib turishi. 0 yoki manfiy bo'lsa avtomatik yopilmaydi
+  // (foydalanuvchi o'zi yopadi). Default: 3000.
+  duration?: number;
 }
 
-const Toast: React.FC<ToastProps> = ({ message, type, onClose }) => {
+const Toast: React.FC<ToastProps> = ({ message, type, onClose, duration = 3000 }) => {
+  // onClose har renderda yangi funksiya bo'lib timer'ni tiklab yubormasligi uchun ref'da saqlaymiz
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
   useEffect(() => {
-    const timer = setTimeout(() => {
-      onClose();
-    }, 3000);
+    if (duration <= 0) return; // doimiy — qo'lda yopiladi
+    const timer = setTimeout(() => onCloseRef.current(), duration);
     return () => clearTimeout(timer);
-  }, [onClose]);
+  }, [message, duration]);
 
   const bgColors = {
     success: 'bg-slate-900 text-white shadow-emerald-500/20',
