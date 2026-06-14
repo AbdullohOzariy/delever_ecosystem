@@ -82,9 +82,17 @@ const MasterDataView: React.FC = () => {
   const [search, setSearch] = useState('');
   const excelFileInputRef = useRef<HTMLInputElement>(null);
   const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' | 'info', duration?: number } | null>(null);
+  // Import natijasi — sahifada turuvchi banner (toast o'tkazib yuborilsa ham ko'rinsin)
+  const [importMsg, setImportMsg] = useState<{ text: string; type: 'success' | 'error' | 'info' } | null>(null);
   const [showHelp, setShowHelp] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState(defaultFilters);
+
+  // Bildirishnoma: tez yo'qoladigan toast + sahifada turuvchi banner (ikkalasi ham)
+  const notify = (text: string, type: 'success' | 'error' | 'info', duration?: number) => {
+    setToast({ message: text, type, duration });
+    setImportMsg({ text, type });
+  };
 
   useEffect(() => { loadOrders(); }, []);
 
@@ -146,12 +154,8 @@ const MasterDataView: React.FC = () => {
 
     const lost = skippedExisting + dupInFile + invalid + failed + preSkipped;
     if (lost === 0) {
-      // Muvaffaqiyatli natija 6 soniya ko'rinib turadi (o'tkazib yuborilmasin)
-      setToast({
-        message: `Master bazaga ${totalAdded.toLocaleString()} ta buyurtma kiritildi${newUsers ? ` · yangi xodim: ${newUsers}` : ''}`,
-        type: 'success',
-        duration: 6000
-      });
+      // Muvaffaqiyatli natija 6 soniya toast + sahifada banner (o'tkazib yuborilmasin)
+      notify(`Master bazaga ${totalAdded.toLocaleString()} ta buyurtma kiritildi${newUsers ? ` · yangi xodim: ${newUsers}` : ''}`, 'success', 6000);
     } else {
       // Nimaga tushib qolganini ham UI'da, ham konsolda ko'rsatamiz (F12 → Console)
       const parts: string[] = [`Master bazaga kiritildi: ${totalAdded.toLocaleString()}`];
@@ -161,12 +165,8 @@ const MasterDataView: React.FC = () => {
       if (failed) parts.push(`xato: ${failed}`);
       if (preSkipped) parts.push(`o'qishda o'tkazilgan: ${preSkipped}`);
       const ids = sampleSkipped.slice(0, 5).join(', ');
-      // Tushib qolganlar bo'lsa — o'qib ulgurish uchun qo'lda yopilguncha turadi
-      setToast({
-        message: `${parts.join(' · ')}${ids ? ` | masalan ID: ${ids}…` : ''}`,
-        type: 'info',
-        duration: 0
-      });
+      // Tushib qolganlar bo'lsa — toast qo'lda yopilguncha turadi + banner
+      notify(`${parts.join(' · ')}${ids ? ` | masalan ID: ${ids}…` : ''}`, 'info', 0);
       console.warn('📋 Import — tushib qolgan qatorlar:', {
         bazadaBor: sampleSkipped,
         yaroqsizYokiXato: sampleProblems,
@@ -186,14 +186,14 @@ const MasterDataView: React.FC = () => {
       const rows: any[][] = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
 
       if (rows.length < 2) {
-        setToast({ message: "Fayl bo'sh yoki noto'g'ri formatda!", type: 'error', duration: 6000 });
+        notify("Fayl bo'sh yoki noto'g'ri formatda!", 'error', 6000);
         return;
       }
 
       const headerRow = rows[0] as any[];
       const { index, missing } = resolveColumns(headerRow);
       if (missing.length > 0) {
-        setToast({ message: `Excel'da kerakli ustun(lar) topilmadi: ${missing.join(', ')}`, type: 'error', duration: 6000 });
+        notify(`Excel'da kerakli ustun(lar) topilmadi: ${missing.join(', ')}`, 'error', 6000);
         return;
       }
 
@@ -235,15 +235,17 @@ const MasterDataView: React.FC = () => {
       }
 
       if (newOrders.length === 0) {
-        setToast({ message: "Faylda yaroqli ma'lumot topilmadi.", type: 'error', duration: 6000 });
+        notify("Faylda yaroqli ma'lumot topilmadi.", 'error', 6000);
         return;
       }
+      // Yuklash boshlanganini ko'rsatamiz (banner darrov paydo bo'lsin)
+      setImportMsg({ text: `Import boshlandi — ${newOrders.length.toLocaleString()} qator yuborilmoqda...`, type: 'info' });
       // O'qishda o'tkazib yuborilgan qatorlar (bo'sh ID / noto'g'ri narx) ham
       // yakuniy hisobotda ko'rinadi — jimgina yo'qolmaydi
       await submitOrdersInChunks(newOrders, errors);
     } catch (error) {
       console.error("Excel import xatosi:", error);
-      setToast({ message: "Excel faylni o'qishda xatolik yuz berdi.", type: 'error', duration: 6000 });
+      notify("Excel faylni o'qishda xatolik yuz berdi: " + ((error as Error)?.message || ''), 'error', 0);
     } finally {
       setIsParsing(false);
       if (excelFileInputRef.current) excelFileInputRef.current.value = '';
@@ -318,6 +320,29 @@ const MasterDataView: React.FC = () => {
   return (
     <div className="space-y-5 animate-fadeIn pb-20 relative">
       {toast && <Toast message={toast.message} type={toast.type} duration={toast.duration} onClose={() => setToast(null)} />}
+
+      {/* IMPORT NATIJASI — sahifada turuvchi banner (toast o'tkazib yuborilsa ham ko'rinadi) */}
+      {importMsg && (
+        <div className={`flex items-start justify-between gap-4 px-5 py-4 rounded-2xl border shadow-sm animate-fadeIn ${
+          importMsg.type === 'success' ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+          : importMsg.type === 'error' ? 'bg-rose-50 border-rose-200 text-rose-800'
+          : 'bg-blue-50 border-blue-200 text-blue-800'
+        }`}>
+          <div className="flex items-start gap-3">
+            <svg className="shrink-0 mt-0.5" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              {importMsg.type === 'success'
+                ? <polyline points="20 6 9 17 4 12"/>
+                : importMsg.type === 'error'
+                ? <><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></>
+                : <><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="16" y2="12"/><line x1="12" x2="12.01" y1="8" y2="8"/></>}
+            </svg>
+            <span className="font-bold text-sm leading-snug">{importMsg.text}</span>
+          </div>
+          <button onClick={() => setImportMsg(null)} className="shrink-0 opacity-60 hover:opacity-100 transition-opacity" aria-label="Yopish">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" x2="6" y1="6" y2="18"/><line x1="6" x2="18" y1="6" y2="18"/></svg>
+          </button>
+        </div>
+      )}
 
       {/* HEADER */}
       <header className="card p-5">
