@@ -128,21 +128,33 @@ setInterval(() => {
 // UTILS
 // ---------------------------------------------------------
 
-// Haftalik hisobot oralig'i (Dushanba 00:00 - Yakshanba 23:59).
-// Kirish: "YYYY-MM-DD" (Dushanba sanasi) yoki "YYYY-Www" (ISO hafta).
-const getWeekRange = (input: string) => {
-  const start = input.includes('-W')
-    ? getWeekStartFromWeekString(input)
-    : new Date(input);
+// Toshkent vaqt mintaqasi (UTC+5, yil davomida o'zgarmas — DST yo'q).
+// Buyurtmalarning createdAt qiymatlari Toshkent vaqtidan UTC ga o'girilib saqlanadi,
+// shuning uchun haftalik oraliqni ham aynan Toshkent vaqtida quramiz.
+const TASHKENT_OFFSET = '+05:00';
 
+// Haftalik hisobot oralig'i: YAKSHANBA 00:00:00 — SHANBA 23:59:59.999 (Toshkent vaqti),
+// to'g'ri UTC instant ko'rinishida (DB dagi createdAt bilan solishtirish uchun).
+// Kirish: hafta kaliti = Yakshanba sanasi "YYYY-MM-DD" (yoki eski "YYYY-Www" — zaxira).
+const getWeekRange = (input: string) => {
+  let sundayStr: string;
+  if (input.includes('-W')) {
+    // Eski "-W" format uchun zaxira: ISO Dushanbadan bir kun oldingi Yakshanba
+    const monday = getWeekStartFromWeekString(input);
+    monday.setDate(monday.getDate() - 1);
+    sundayStr = `${monday.getFullYear()}-${String(monday.getMonth() + 1).padStart(2, '0')}-${String(monday.getDate()).padStart(2, '0')}`;
+  } else {
+    sundayStr = input.slice(0, 10);
+  }
+
+  const start = new Date(`${sundayStr}T00:00:00.000${TASHKENT_OFFSET}`);
   if (isNaN(start.getTime())) {
     throw new Error(`Noto'g'ri hafta formati: ${input}`);
   }
-
-  start.setHours(0, 0, 0, 0);
-  const end = new Date(start);
-  end.setDate(start.getDate() + 6);
-  end.setHours(23, 59, 59, 999);
+  // Shanba = Yakshanba + 6 kun (UTC sana matematikasi bilan — tz drift bo'lmasin)
+  const [sy, sm, sd] = sundayStr.split('-').map(Number);
+  const saturdayStr = new Date(Date.UTC(sy, sm - 1, sd + 6)).toISOString().slice(0, 10);
+  const end = new Date(`${saturdayStr}T23:59:59.999${TASHKENT_OFFSET}`);
 
   return { start, end };
 };

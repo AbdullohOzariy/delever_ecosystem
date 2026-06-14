@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { User } from '../types';
 import { api, API_URL, authFetch } from '../api';
+import { weekStartOf, shiftWeek, weekRangeLabel } from './weekUtils';
 
 interface CourierReportsProps {
   user: User;
@@ -14,55 +15,19 @@ const CourierReports: React.FC<CourierReportsProps> = ({ user }) => {
   const [periodType, setPeriodType] = useState<'monthly' | 'weekly'>('weekly'); // Default: Weekly
   const [month, setMonth] = useState(new Date().toISOString().slice(0, 7)); 
   
-  // Hozirgi haftani aniqlash
-  const getCurrentWeek = () => {
-    const date = new Date();
-    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-    const dayNum = d.getUTCDay() || 7;
-    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
-    const yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
-    const weekNo = Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1)/7);
-    return `${d.getUTCFullYear()}-W${weekNo.toString().padStart(2, '0')}`;
-  };
-
-  const [week, setWeek] = useState(getCurrentWeek());
+  // Hafta kaliti = shu haftaning Yakshanba sanasi (YYYY-MM-DD). Hafta: Yakshanba–Shanba.
+  const [week, setWeek] = useState(weekStartOf());
 
   useEffect(() => {
     loadReport();
   }, [user.id, month, week, periodType]);
-
-  const getDateFromWeek = (weekStr: string) => {
-    const [y, w] = weekStr.split('-W');
-    const year = parseInt(y);
-    const week = parseInt(w);
-    
-    const simple = new Date(year, 0, 1 + (week - 1) * 7);
-    const dow = simple.getDay();
-    const ISOweekStart = simple;
-    if (dow <= 4)
-        ISOweekStart.setDate(simple.getDate() - simple.getDay() + 1);
-    else
-        ISOweekStart.setDate(simple.getDate() + 8 - simple.getDay());
-    
-    return ISOweekStart; 
-  };
-
-  const getWeekRangeDisplay = (weekStr: string) => {
-    const monday = getDateFromWeek(weekStr);
-    const sunday = new Date(monday);
-    sunday.setDate(monday.getDate() + 6);
-    return `${monday.toLocaleDateString('uz-UZ')} - ${sunday.toLocaleDateString('uz-UZ')}`;
-  };
 
   const loadReport = async () => {
     setLoading(true);
     try {
       let data;
       if (periodType === 'weekly') {
-        const monday = getDateFromWeek(week);
-        const dateStr = monday.toISOString().slice(0, 10);
-        
-        const res = await authFetch(`${API_URL}/kpi/report/${user.id}?period=weekly&week=${dateStr}`);
+        const res = await authFetch(`${API_URL}/kpi/report/${user.id}?period=weekly&week=${week}`);
         data = await res.json();
       } else {
         data = await api.getKPIReport(user.id, month);
@@ -113,9 +78,19 @@ const CourierReports: React.FC<CourierReportsProps> = ({ user }) => {
             {periodType === 'monthly' ? (
               <input type="month" value={month} onChange={(e) => setMonth(e.target.value)} className="bg-background border-none rounded-2xl px-4 py-2 text-sm font-bold outline-none text-primary shadow-inner" />
             ) : (
-              <div className="flex flex-col">
-                <input type="week" value={week} onChange={(e) => setWeek(e.target.value)} className="bg-background border-none rounded-2xl px-4 py-2 text-sm font-bold outline-none text-primary shadow-inner" />
-                <span className="text-[10px] text-secondary font-bold mt-1 text-center">{getWeekRangeDisplay(week)}</span>
+              <div className="flex items-center gap-1.5">
+                <button onClick={() => setWeek(shiftWeek(week, -1))} aria-label="Oldingi hafta"
+                  className="p-2 rounded-xl bg-background text-secondary hover:text-primary hover:bg-white transition-all shadow-inner active:scale-95">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="m15 18-6-6 6-6"/></svg>
+                </button>
+                <div className="flex flex-col items-center bg-background rounded-2xl px-4 py-1.5 shadow-inner min-w-[200px]">
+                  <span className="text-sm font-black text-primary tracking-tight">{weekRangeLabel(week)}</span>
+                  <span className="text-[9px] text-secondary font-bold uppercase tracking-widest">Yakshanba — Shanba</span>
+                </div>
+                <button onClick={() => setWeek(shiftWeek(week, 1))} aria-label="Keyingi hafta"
+                  className="p-2 rounded-xl bg-background text-secondary hover:text-primary hover:bg-white transition-all shadow-inner active:scale-95">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="m9 18 6-6-6-6"/></svg>
+                </button>
               </div>
             )}
           </div>
