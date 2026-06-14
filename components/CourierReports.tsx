@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { User } from '../types';
 import { api, API_URL, authFetch } from '../api';
-import { weekStartOf, shiftWeek, weekRangeLabel } from './weekUtils';
+import { weekStartOf, shiftWeek, weekRangeLabel, weekStartFromDateStr } from './weekUtils';
 
 interface CourierReportsProps {
   user: User;
@@ -83,10 +83,16 @@ const CourierReports: React.FC<CourierReportsProps> = ({ user }) => {
                   className="p-2 rounded-xl bg-background text-secondary hover:text-primary hover:bg-white transition-all shadow-inner active:scale-95">
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="m15 18-6-6 6-6"/></svg>
                 </button>
-                <div className="flex flex-col items-center bg-background rounded-2xl px-4 py-1.5 shadow-inner min-w-[200px]">
+                {/* Kalendar: istalgan kun tanlansa ham o'sha haftaning Yakshanbasiga tushadi */}
+                <label className="relative flex flex-col items-center bg-background rounded-2xl px-4 py-1.5 shadow-inner min-w-[200px] cursor-pointer hover:bg-white transition-all"
+                  title="Kalendardan tanlang — hafta Yakshanbadan boshlanadi">
                   <span className="text-sm font-black text-primary tracking-tight">{weekRangeLabel(week)}</span>
                   <span className="text-[9px] text-secondary font-bold uppercase tracking-widest">Yakshanba — Shanba</span>
-                </div>
+                  <input type="date" value={week}
+                    onClick={(e) => (e.currentTarget as HTMLInputElement).showPicker?.()}
+                    onChange={(e) => e.target.value && setWeek(weekStartFromDateStr(e.target.value))}
+                    className="absolute inset-0 opacity-0 cursor-pointer" aria-label="Kalendardan tanlash" />
+                </label>
                 <button onClick={() => setWeek(shiftWeek(week, 1))} aria-label="Keyingi hafta"
                   className="p-2 rounded-xl bg-background text-secondary hover:text-primary hover:bg-white transition-all shadow-inner active:scale-95">
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="m9 18 6-6-6-6"/></svg>

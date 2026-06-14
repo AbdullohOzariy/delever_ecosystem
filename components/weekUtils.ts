@@ -16,6 +16,12 @@ export const weekStartOf = (d: Date = new Date()): string => {
   return ymd(x);
 };
 
+// Kalendardan tanlangan istalgan "YYYY-MM-DD" sana — o'sha hafta Yakshanbasiga snap.
+export const weekStartFromDateStr = (dateStr: string): string => {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  return weekStartOf(new Date(y, m - 1, d));
+};
+
 // Hafta kalitini (Yakshanba) oldinga/orqaga suradi.
 export const shiftWeek = (sundayStr: string, deltaWeeks: number): string => {
   const [y, m, d] = sundayStr.split('-').map(Number);
