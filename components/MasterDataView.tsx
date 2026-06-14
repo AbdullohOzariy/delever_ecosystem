@@ -148,13 +148,13 @@ const MasterDataView: React.FC = () => {
     if (lost === 0) {
       // Muvaffaqiyatli natija 6 soniya ko'rinib turadi (o'tkazib yuborilmasin)
       setToast({
-        message: `Import yakunlandi! Qo'shildi: ${totalAdded}${newUsers ? `, yangi xodim: ${newUsers}` : ''}`,
+        message: `Master bazaga ${totalAdded.toLocaleString()} ta buyurtma kiritildi${newUsers ? ` · yangi xodim: ${newUsers}` : ''}`,
         type: 'success',
         duration: 6000
       });
     } else {
       // Nimaga tushib qolganini ham UI'da, ham konsolda ko'rsatamiz (F12 → Console)
-      const parts: string[] = [`Qo'shildi: ${totalAdded}`];
+      const parts: string[] = [`Master bazaga kiritildi: ${totalAdded.toLocaleString()}`];
       if (skippedExisting) parts.push(`bazada bor: ${skippedExisting}`);
       if (dupInFile) parts.push(`fayl ichi dublikat: ${dupInFile}`);
       if (invalid) parts.push(`yaroqsiz: ${invalid}`);
