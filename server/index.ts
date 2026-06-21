@@ -1093,7 +1093,8 @@ app.get('/api/kpi/report/:userId', async (req, res) => {
           priceStats[key] = (priceStats[key] || 0) + 1;
         }
         
-        if (o.deliveryTimeSeconds && o.deliveryTimeSeconds < 1800) {
+        // Tezkor yetkazish bonusi — VAQTINCHA TO'XTATILGAN (FAST_DELIVERY_BONUS_ENABLED bilan boshqariladi).
+        if (FAST_DELIVERY_BONUS_ENABLED && o.deliveryTimeSeconds && o.deliveryTimeSeconds < 1800) {
           totalEarnings += 1000;
           speedBonusCount++;
         }

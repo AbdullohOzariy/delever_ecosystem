@@ -135,10 +135,6 @@ const CourierReports: React.FC<CourierReportsProps> = ({ user }) => {
         <div className="bg-surface p-8 rounded-4xl shadow-soft border border-white/50 text-center group hover:shadow-hover transition-all duration-300">
           <p className="text-[10px] font-black text-secondary uppercase tracking-widest mb-2">O'rtacha vaqt</p>
           <h4 className="text-4xl font-black text-primary">{facts.avgSpeedMinutes} <span className="text-lg text-secondary">min</span></h4>
-          <div className="mt-6 bg-emerald-50 text-emerald-600 py-3 px-6 rounded-2xl inline-block border border-emerald-100">
-            <p className="text-xs font-bold uppercase tracking-wide">Tezlik Bonusi</p>
-            <p className="text-2xl font-black mt-1">+{facts.speedBonusCount}</p>
-          </div>
         </div>
 
         {/* Bonuslar */}
@@ -147,10 +143,6 @@ const CourierReports: React.FC<CourierReportsProps> = ({ user }) => {
           <p className="text-[10px] font-black opacity-70 uppercase tracking-widest mb-2">Qo'shimcha Bonuslar</p>
           
           <div className="space-y-4 mt-6 bg-white/40 backdrop-blur-sm p-4 rounded-2xl border border-white/20">
-            <div className="flex justify-between items-center border-b border-primary/10 pb-2">
-              <span className="text-xs font-bold opacity-80">Tezlik uchun:</span>
-              <span className="font-black">+{(facts.speedBonusCount * 1000).toLocaleString()}</span>
-            </div>
             <div className="flex justify-between items-center border-b border-primary/10 pb-2">
               <span className="text-xs font-bold opacity-80">Maxsus (8k/10k):</span>
               <span className="font-black">+{(facts.specialBonusCount * 1000).toLocaleString()}</span>

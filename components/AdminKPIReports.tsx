@@ -155,7 +155,7 @@ const AdminKPIReports: React.FC<AdminKPIReportsProps> = ({ users }) => {
 
     const tableColumn = activeRole === UserRole.OPERATOR 
       ? ["Xodim", "Skript", "Sifat", "Intizom", "Buyurtma", "Tezlik", "Chek", "Yakuniy Ball"]
-      : ["Xodim", "Buyurtma Soni", "Tafsilotlar", "O'rtacha Tezlik", "Tezlik Bonusi", "Maxsus Bonus", "Qo'shimcha", "Jami Daromad"];
+      : ["Xodim", "Buyurtma Soni", "Tafsilotlar", "O'rtacha Tezlik", "Maxsus Bonus", "Qo'shimcha", "Jami Daromad"];
 
     const tableRows = reports.map(rep => {
       if (activeRole === UserRole.OPERATOR) {
@@ -179,7 +179,6 @@ const AdminKPIReports: React.FC<AdminKPIReportsProps> = ({ users }) => {
           rep.facts?.totalOrders || 0,
           details || '-', 
           `${rep.facts?.avgSpeedMinutes || 0} min`,
-          rep.facts?.speedBonusCount || 0,
           rep.facts?.specialBonusCount || 0,
           rep.facts?.manualBonus || 0,
           `${(rep.facts?.totalEarnings || 0).toLocaleString()} UZS`
@@ -348,7 +347,6 @@ const AdminKPIReports: React.FC<AdminKPIReportsProps> = ({ users }) => {
                     <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-center">Buyurtma Soni</th>
                     <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-center">Tafsilotlar</th>
                     <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-center">O'rtacha Tezlik</th>
-                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-center">Tezlik Bonusi</th>
                     <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-center">Maxsus Bonus</th>
                     <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-center">Qo'shimcha</th>
                     <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-right rounded-r-2xl">Jami Daromad</th>
@@ -414,7 +412,6 @@ const AdminKPIReports: React.FC<AdminKPIReportsProps> = ({ users }) => {
                           </div>
                         </td>
                         <td className="px-6 py-5 text-center font-bold text-secondary group-hover:text-primary transition-colors">{rep.facts?.avgSpeedMinutes || 0} min</td>
-                        <td className="px-6 py-5 text-center font-bold text-emerald-600">+{rep.facts?.speedBonusCount || 0}</td>
                         <td className="px-6 py-5 text-center font-bold text-purple-600">+{rep.facts?.specialBonusCount || 0}</td>
                         <td className="px-6 py-5 text-center">
                           <div className="flex items-center justify-center gap-2">
