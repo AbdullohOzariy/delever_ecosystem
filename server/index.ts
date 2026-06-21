@@ -331,6 +331,10 @@ const KPI_RULES = {
 type PayoutOrder = { deliveryPrice: any; amount: any; deliveryTimeSeconds: number | null };
 type PayoutKPI = { bonusAmount: any };
 
+// Tezkor yetkazish bonusi (<30 daqiqa, +1000 so'm) — VAQTINCHA TO'XTATILGAN.
+// Qayta yoqish uchun shuni true qilish kifoya.
+const FAST_DELIVERY_BONUS_ENABLED = false;
+
 const calculateWeeklyPayout = (role: string, orders: PayoutOrder[], dailyKPIs: PayoutKPI[]): number => {
   let total = 0;
 
@@ -338,8 +342,8 @@ const calculateWeeklyPayout = (role: string, orders: PayoutOrder[], dailyKPIs: P
     orders.forEach(o => {
       const price = Math.round(Number(o.deliveryPrice));
       total += price;
-      // Tezkor yetkazish bonusi (< 30 daqiqa)
-      if (o.deliveryTimeSeconds && o.deliveryTimeSeconds < 1800) total += 1000;
+      // Tezkor yetkazish bonusi (< 30 daqiqa) — flag bilan boshqariladi
+      if (FAST_DELIVERY_BONUS_ENABLED && o.deliveryTimeSeconds && o.deliveryTimeSeconds < 1800) total += 1000;
       // 8000/10000 lik buyurtmalar uchun qo'shimcha bonus
       if (price === 8000 || price === 10000) total += 1000;
     });
