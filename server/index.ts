@@ -201,6 +201,17 @@ const parseDate = (dateStr: string) => {
   return isNaN(d.getTime()) ? new Date() : d;
 };
 
+// Saqlanadigan UTC instant'dan Toshkent kalendar oyini "YYYY-MM" ko'rinishida oladi.
+// Migratsiyadagi (createdAt AT TIME ZONE 'UTC') AT TIME ZONE 'Asia/Tashkent' bilan mos.
+const tashkentMonth = (d: Date) => {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Tashkent', year: 'numeric', month: '2-digit'
+  }).formatToParts(d);
+  const y = parts.find(p => p.type === 'year')!.value;
+  const m = parts.find(p => p.type === 'month')!.value;
+  return `${y}-${m}`;
+};
+
 const transliterate = (text: string) => {
   const map: Record<string, string> = {
     'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'yo', 'ж': 'j',
@@ -588,8 +599,15 @@ app.post('/api/orders/import', requireAdmin, async (req, res) => {
       const id = String(o.id ?? '').trim();
       if (!id) { invalidRows.push({ id: '(bo\'sh)', reason: "ID bo'sh" }); continue; }
 
-      if (seenIds.has(id)) { duplicateInFile.push(id); continue; }
-      seenIds.add(id);
+      // Manba tizimi buyurtma ID'sini har oy noldan boshlaydi → oylar bo'yicha
+      // to'qnashuvni oldini olish uchun PK'ni "YYYY-MM-<manbaID>" ko'rinishida quramiz.
+      // "Oy" — buyurtmaning o'z sanasidan (Toshkent kalendar oyi), saqlanadigan UTC
+      // instant'dan olinadi; migratsiya bilan bir xil natija beradi.
+      const createdAtDate = parseDate(o.createdAt);
+      const fullId = `${tashkentMonth(createdAtDate)}-${id}`;
+
+      if (seenIds.has(fullId)) { duplicateInFile.push(fullId); continue; }
+      seenIds.add(fullId);
 
       const amount = parseFloat(o.amount);
       const deliveryPrice = parseFloat(o.deliveryPrice);
@@ -599,11 +617,11 @@ app.post('/api/orders/import', requireAdmin, async (req, res) => {
       const safeDelivery = isNaN(deliveryPrice) ? 0 : deliveryPrice;
 
       if (safeAmount > MAX_DECIMAL) {
-        invalidRows.push({ id, reason: `Summa ${safeAmount} ustun chegarasidan (99,999,999.99) oshib ketdi` });
+        invalidRows.push({ id: fullId, reason: `Summa ${safeAmount} ustun chegarasidan (99,999,999.99) oshib ketdi` });
         continue;
       }
       if (safeDelivery > MAX_DECIMAL) {
-        invalidRows.push({ id, reason: `Dostavka narxi ${safeDelivery} chegaradan oshib ketdi` });
+        invalidRows.push({ id: fullId, reason: `Dostavka narxi ${safeDelivery} chegaradan oshib ketdi` });
         continue;
       }
 
@@ -614,7 +632,7 @@ app.post('/api/orders/import', requireAdmin, async (req, res) => {
       const courierId = crName ? userMap.get(crName) : null;
 
       formattedOrders.push({
-        id,
+        id: fullId,
         customerName: o.customerName || 'Mijoz',
         address: o.address || '',
         amount: safeAmount,
@@ -622,8 +640,8 @@ app.post('/api/orders/import', requireAdmin, async (req, res) => {
         deliveryType: o.deliveryType || '',
         branch: o.branch || null, // YANGI: Filial nomi
         status: OrderStatus.DELIVERED,
-        createdAt: parseDate(o.createdAt),
-        deliveredAt: parseDate(o.createdAt),
+        createdAt: createdAtDate,
+        deliveredAt: createdAtDate,
         deliveryTimeSeconds: (isNaN(deliveryTimeSeconds) || deliveryTimeSeconds > MAX_INT) ? 0 : deliveryTimeSeconds,
         operatorId: operatorId || null,
         courierId: courierId || null
